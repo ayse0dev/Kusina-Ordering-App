@@ -1,0 +1,8 @@
+# Automatic HTTPS (Let's Encrypt) for your domain. Point the domain's DNS A/AAAA record at this server first.
+{$DOMAIN} {
+    encode zstd gzip
+
+    # Everything (including the /app websocket path) goes to the web container;
+    # nginx there forwards /app to the reverb container.
+    reverse_proxy web:80
+}

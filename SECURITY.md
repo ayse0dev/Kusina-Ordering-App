@@ -41,3 +41,6 @@
 - **GrabExpress:** only serves Southeast Asia. Set `GRAB_*` and `KUSINA_PICKUP_LAT/LNG`, and register `https://YOUR-DOMAIN/webhooks/courier/grab?token=<GRAB_WEBHOOK_TOKEN>`. Grab quotes in local currencies, so with `CAD` prices it will correctly fall back to the flat fee.
 - The courier adapters follow each provider's published API but have **not** been exercised against live accounts. Verify quotes, bookings, cancellations and webhooks in the provider sandbox before taking real orders.
 - Nominatim (OpenStreetMap) is used for the delivery-radius check; for heavy volume switch to a paid geocoder or set `KUSINA_GEOCODER=none`.
+
+## Deployment
+A ready-to-run Docker setup (Caddy HTTPS, nginx + php-fpm, MariaDB, Reverb, queue worker) is in `DEPLOY.md`. Its web container disables process-spawning functions, only executes `index.php`, and never executes anything under `/storage`.

@@ -1,0 +1,105 @@
+# Production stack for Kusina on a single server.
+#
+#   cp .env.production.example .env.production   # then fill it in
+#   docker compose --env-file .env.production up -d --build
+#
+# Services: caddy (HTTPS) -> web (nginx+php-fpm) -> db (MariaDB); reverb (WebSockets); queue (worker).
+# See DEPLOY.md for the full walkthrough.
+
+x-app: &app
+  image: kusina-app:latest
+  build:
+    context: .
+    args:
+      # Baked into the browser JS at build time: the PUBLIC websocket address (same domain, port 443).
+      VITE_REVERB_APP_KEY: ${REVERB_APP_KEY}
+      VITE_REVERB_HOST: ${DOMAIN}
+      VITE_REVERB_PORT: "443"
+      VITE_REVERB_SCHEME: https
+  env_file: .env.production
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: web
+      RUN_MIGRATIONS: "true"       # only the web container migrates
+    volumes:
+      - storage:/var/www/html/storage    # uploads, logs, sessions/cache files
+    expose:
+      - "80"
+
+  reverb:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: reverb
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_healthy   # wait until migrations have run
+    volumes:
+      - storage:/var/www/html/storage
+    expose:
+      - "8080"
+    healthcheck:
+      disable: true
+
+  queue:
+    <<: *app
+    environment:
+      CONTAINER_ROLE: queue
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_healthy   # wait until migrations have run
+    volumes:
+      - storage:/var/www/html/storage
+    healthcheck:
+      disable: true
+
+  db:
+    image: mariadb:11.8
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - db-data:/var/lib/mysql
+    # Not published to the host: only the app containers on the internal network can reach the database.
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data        # certificates: keep this volume!
+      - caddy-config:/config
+    depends_on:
+      - web
+
+volumes:
+  storage:
+  db-data:
+  caddy-data:
+  caddy-config:
