@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] { display: none !important; }
+
+@layer base {
+    body { @apply font-sans font-light; }
+    body strong, body .font-medium, body .font-semibold, body .font-bold { font-weight: 700; }
+    h1, h2, h3 { @apply font-display; }
+    h1 { @apply uppercase tracking-[0.08em]; }
+    ::selection { @apply bg-sun-400 text-navy-950; }
+
+    [type='text'], [type='email'], [type='password'], [type='number'], [type='tel'], [type='date'],
+    [type='search'], select, textarea {
+        @apply border-cream-line bg-white shadow-none focus:border-sun-500 focus:ring-sun-500;
+    }
+    [type='checkbox'], [type='radio'] { @apply text-sun-600 focus:ring-sun-500; }
+}
+
+@layer components {
+    /* Thin gold hairline (replaces any heavy ribbon) */
+    .ribbon {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #c9a45c 20%, #c9a45c 80%, transparent);
+    }
+
+    /* Moody ambient glow, used when no hero photo is supplied */
+    .hero-ambient {
+        background-color: #0a0a09;
+        background-image:
+            radial-gradient(ellipse 55% 60% at 12% 25%, rgb(201 164 92 / 0.28), transparent 60%),
+            radial-gradient(ellipse 45% 55% at 88% 70%, rgb(150 58 28 / 0.30), transparent 62%),
+            radial-gradient(ellipse 60% 40% at 50% 100%, rgb(201 164 92 / 0.12), transparent 70%);
+    }
+
+    /* Subtle gold lattice for dark panels (footer, login) */
+    .pattern-banig {
+        background-color: #0a0a09;
+        background-image:
+            linear-gradient(45deg, rgb(201 164 92 / 0.06) 25%, transparent 25%, transparent 75%, rgb(201 164 92 / 0.06) 75%),
+            linear-gradient(45deg, rgb(201 164 92 / 0.06) 25%, transparent 25%, transparent 75%, rgb(201 164 92 / 0.06) 75%);
+        background-size: 32px 32px;
+        background-position: 0 0, 16px 16px;
+    }
+    .pattern-sinag {
+        background-image: radial-gradient(ellipse 60% 70% at 50% 0%, rgb(201 164 92 / 0.14), transparent 70%);
+    }
+
+    /* Section heading: spaced caps, a short gold rule, then a script line */
+    .section-title { @apply font-display uppercase tracking-[0.12em] text-navy-900 font-semibold; }
+    .section-rule { display: block; width: 3.5rem; height: 2px; @apply bg-sun-500 mt-2; }
+    .script { @apply font-script text-sun-600 font-normal tracking-normal normal-case; }
+
+    /* Understated text link: gold caps with underline */
+    .link-gold {
+        @apply font-display text-xs font-semibold uppercase tracking-[0.2em] text-sun-300 border-b border-sun-400 pb-0.5 transition hover:text-white hover:border-white;
+    }
+    .link-gold-dark {
+        @apply font-display text-xs font-semibold uppercase tracking-[0.2em] text-sun-700 border-b border-sun-600 pb-0.5 transition hover:text-navy-900 hover:border-navy-900;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center bg-navy-950 px-5 py-3 font-display text-xs font-semibold uppercase tracking-[0.2em] text-sun-300
+               transition hover:bg-sun-500 hover:text-navy-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-sun-500 focus-visible:ring-offset-2 disabled:opacity-60;
+    }
+    .card { @apply border border-cream-line bg-white shadow-card; }
+}

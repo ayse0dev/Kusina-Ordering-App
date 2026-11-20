@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class SecurityHeaders
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $response = $next($request);
+
+        $csp = implode('; ', [
+            "default-src 'self'",
+            // Alpine.js evaluates expressions, which needs 'unsafe-eval'.
+            "script-src 'self' 'unsafe-eval'".(app()->environment('local') ? ' http://localhost:5173' : ''),
+            "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
+            "font-src 'self' https://fonts.bunny.net data:",
+            "img-src 'self' data: blob:",
+            "connect-src 'self' ws: wss:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "frame-ancestors 'self'",
+            // Checkout redirects to Stripe after a form POST.
+            "form-action 'self' https://checkout.stripe.com",
+        ]);
+
+        $response->headers->set('Content-Security-Policy', $csp);
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+        $response->headers->remove('X-Powered-By');
+
+        if ($request->isSecure()) {
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
+
+        return $response;
+    }
+}
