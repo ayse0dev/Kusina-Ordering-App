@@ -107,7 +107,7 @@ class UberDirectCourier implements CourierProvider
 
         $payload = array_filter([
             'quote_id' => ($delivery->quote_id && $delivery->created_at?->gt(now()->subMinutes(10))) ? $delivery->quote_id : null,   // quotes expire quickly
-            'pickup_name' => $p['name'] ?: 'Kusina',
+            'pickup_name' => $p['name'] ?: 'Kusi Nna',
             'pickup_address' => $this->pickupAddress(),
             'pickup_phone_number' => $p['phone'] ? Phone::e164($p['phone']) : null,
             'dropoff_name' => $order->customer_name,

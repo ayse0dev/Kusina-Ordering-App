@@ -12,6 +12,8 @@ Internet ──► Caddy (HTTPS, auto certificates)
 
 > **Not yet tested:** the Docker image was written and checked (shell syntax, compose file, config) but **not built or run**: Docker isn't installed on the machine it was authored on. Expect to fix small things on the first build, and follow section 7 (smoke test) before announcing the site.
 
+> Free options: **Oracle Cloud Always Free** (a real always-on server): `DEPLOY-ORACLE.md`. **Render + TiDB** (demo only: sleeps, photos don't persist): `DEPLOY-RENDER.md`.
+
 ## 1. Prerequisites
 - A Linux server (Ubuntu 24.04 LTS recommended) and a **domain** whose DNS `A` record points at the server's IP.
 - Docker Engine + the Compose plugin: <https://docs.docker.com/engine/install/ubuntu/>
@@ -46,7 +48,7 @@ It prints a generated password. Sign in at `https://YOUR-DOMAIN/login`, then **c
 ## 4. Connect Stripe and couriers
 - **Stripe:** set `STRIPE_SECRET_KEY`; in the Stripe dashboard add a webhook `https://YOUR-DOMAIN/webhooks/stripe` for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired` and put its signing secret in `STRIPE_WEBHOOK_SECRET`.
 - **Delivery:** see `SECURITY.md` ("Delivery couriers"). Uber Direct webhook URL: `https://YOUR-DOMAIN/webhooks/courier/uber`.
-- After editing `.env.production`: `docker compose --env-file .env.production up -d` (add `--build` if you changed `DOMAIN` or the `REVERB_*` keys, because those are baked into the site's JavaScript).
+- After editing `.env.production`: `docker compose --env-file .env.production up -d` (no rebuild needed: the live-updates settings are read by the browser at runtime).
 - Set real SMTP details so gift vouchers are emailed (`MAIL_*`).
 
 ## 5. Updating the site
@@ -88,7 +90,7 @@ Keep the `caddy-data` volume too (it holds your HTTPS certificates). Test a rest
 Logs: `docker compose --env-file .env.production logs -f --tail=100 web queue reverb`.
 
 ## 9. Other hosts
-- **Railway / Render / Fly.io / any container platform:** build the same `Dockerfile` and run it as three services with `CONTAINER_ROLE=web`, `reverb` and `queue` (`RUN_MIGRATIONS=true` on `web` only), plus a managed MariaDB/MySQL database and a persistent disk mounted at `/var/www/html/storage`. Set `REVERB_UPSTREAM=<reverb service host>:8080` on `web`, and pass the `VITE_REVERB_*` values as build arguments (see `docker-compose.yml`). The platform provides HTTPS, so you don't need Caddy.
+- **Railway / Render / Fly.io / any container platform:** build the same `Dockerfile` and run it as three services with `CONTAINER_ROLE=web`, `reverb` and `queue` (`RUN_MIGRATIONS=true` on `web` only), plus a managed MariaDB/MySQL database and a persistent disk mounted at `/var/www/html/storage`. Set `REVERB_UPSTREAM=<reverb service host>:8080` on `web`. The platform provides HTTPS, so you don't need Caddy. (Hosts that give you a `PORT` variable are supported: nginx listens on it.) For a single small container there is also `CONTAINER_ROLE=all` (website + live updates together): see `DEPLOY-RENDER.md` and `render.yaml`.
 - **Laravel Forge / Ploi on a VPS (no Docker):** install PHP 8.4 with `gd intl pdo_mysql zip bcmath`, point the site at `public/`, use `docker/nginx/default.conf.template` as a reference for the security rules, run `php artisan reverb:start` and `php artisan queue:work` as daemons, and apply the hardening list in `SECURITY.md`.
 
 ## Security notes

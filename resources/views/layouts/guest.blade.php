@@ -4,8 +4,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="reverb-key" content="{{ config('reverb.apps.apps.0.key') }}">
 
-        <title>{{ config('app.name', 'Kusina') }}</title>
+        <title>{{ config('app.name', 'Kusi Nna Restaurant') }}</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=lato:300,400,700|josefin-sans:400,600,700|great-vibes:400&display=swap" rel="stylesheet">
@@ -20,7 +21,7 @@
                 <span class="grid place-items-center w-16 h-16 rounded-2xl border border-sun-400/80">
                     <x-sinag class="w-10 h-10 text-sun-400" />
                 </span>
-                <span class="mt-2 font-script text-5xl text-sun-300 leading-none">Kusina</span>
+                <span class="mt-2 font-script text-5xl text-sun-300 leading-none">Kusi Nna</span><span class="mt-1 font-display text-[10px] uppercase tracking-[0.4em] text-white/60">Restaurant</span>
                 <span class="font-display text-[11px] uppercase tracking-[0.3em] text-white/60 font-semibold mt-2">Staff portal</span>
             </a>
 

@@ -70,7 +70,7 @@ class VoucherService
         try {
             [$sessionId, $url] = $this->stripe->createCheckout(
                 (float) $data['amount'],
-                'Kusina gift voucher',
+                'Kusi Nna gift voucher',
                 'gift-'.$voucher->id,
                 route('vouchers.purchase', $voucher->public_token),
                 route('vouchers.index'),
@@ -96,7 +96,7 @@ class VoucherService
 
         foreach (array_filter([$voucher->recipient_email, $voucher->buyer_email]) as $to) {
             try {
-                Mail::raw($this->emailBody($voucher), fn ($m) => $m->to($to)->subject('Your Kusina gift voucher'));
+                Mail::raw($this->emailBody($voucher), fn ($m) => $m->to($to)->subject('Your Kusi Nna gift voucher'));
             } catch (Throwable $e) {
                 report($e); // never fail the webhook over email
             }
@@ -105,7 +105,7 @@ class VoucherService
 
     private function emailBody(Voucher $v): string
     {
-        return "Hello {$v->recipient_name},\n\n{$v->buyer_name} sent you a Kusina gift voucher worth $"
+        return "Hello {$v->recipient_name},\n\n{$v->buyer_name} sent you a Kusi Nna gift voucher worth $"
             .number_format($v->value, 2)." CAD.\n\n".($v->message ? "\"{$v->message}\"\n\n" : '')
             ."Your code: {$v->code}\n\nEnter it at checkout to use it. Salamat po!\n";
     }

@@ -20,7 +20,7 @@
 
                 <div class="mt-8 hero-ambient text-white p-8 border border-sun-400/50 print:border-black">
                     <x-sinag class="w-10 h-10 text-sun-400 mx-auto" />
-                    <p class="font-display text-[10px] uppercase tracking-[0.4em] text-sun-300 mt-3">Kusina gift voucher</p>
+                    <p class="font-display text-[10px] uppercase tracking-[0.4em] text-sun-300 mt-3">Kusi Nna gift voucher</p>
                     <p class="font-display text-5xl font-bold mt-2">${{ number_format($voucher->value, 2) }} <span class="text-sm font-normal text-white/60">CAD</span></p>
                     <p class="mt-5 font-display text-2xl font-bold tracking-[0.18em] text-sun-300 select-all">{{ $voucher->code }}</p>
                     @if ($voucher->recipient_name)<p class="mt-4 text-white/70 text-sm">For {{ $voucher->recipient_name }}@if ($voucher->buyer_name), from {{ $voucher->buyer_name }}@endif</p>@endif

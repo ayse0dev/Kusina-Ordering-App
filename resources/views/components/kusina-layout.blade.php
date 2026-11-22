@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Kusina' }} · Kusina</title>
+    <meta name="reverb-key" content="{{ config('reverb.apps.apps.0.key') }}">
+    <title>{{ $title ?? 'Kusi Nna Restaurant' }} · Kusi Nna Restaurant</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=lato:300,400,700|josefin-sans:400,600,700|great-vibes:400&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -14,9 +15,9 @@
 {{-- Top bar --}}
 <header class="sticky top-0 z-30 bg-navy-950/95 backdrop-blur text-navy-100">
     <div class="max-w-6xl mx-auto px-4 h-16 grid grid-cols-[auto_1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-4">
-        <a href="{{ route('home') }}" class="flex items-center gap-2 w-fit" aria-label="Kusina home">
+        <a href="{{ route('home') }}" class="flex items-center gap-2 w-fit" aria-label="Kusi Nna Restaurant home">
             <x-sinag class="w-6 h-6 text-sun-400" />
-            <span class="font-script text-3xl leading-none text-sun-300 pt-1">Kusina</span>
+            <span class="font-script text-3xl leading-none text-sun-300 pt-1">Kusi Nna</span><span class="hidden sm:inline font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-white/60">Restaurant</span>
         </a>
 
         <nav class="hidden md:flex items-center gap-7 font-display text-[11px] font-semibold uppercase tracking-[0.22em]">
@@ -56,7 +57,7 @@
     <div class="ribbon"></div>
     <div class="max-w-6xl mx-auto px-4 py-12 grid gap-8 sm:grid-cols-3 text-sm">
         <div>
-            <p class="flex items-center gap-2"><x-sinag class="w-6 h-6 text-sun-400" /><span class="font-script text-4xl text-sun-300 leading-none pt-1">Kusina</span></p>
+            <p class="flex items-center gap-2"><x-sinag class="w-6 h-6 text-sun-400" /><span class="font-script text-4xl text-sun-300 leading-none pt-1">Kusi Nna</span><span class="hidden sm:inline font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-white/60">Restaurant</span></p>
             <p class="mt-3 text-navy-300 font-light">Home-style Filipino cooking, made fresh daily and served with malasakit.</p>
             <p class="mt-2 text-navy-300 font-light">{{ config('kusina.contact.address') }}</p>
         </div>
@@ -69,7 +70,7 @@
             <a href="{{ route('vouchers.index') }}" class="inline-block mt-3 mr-4 font-display text-[11px] uppercase tracking-[0.22em] text-navy-300 hover:text-sun-300">Gift vouchers</a><a href="{{ route('login') }}" class="inline-block mt-3 font-display text-[11px] uppercase tracking-[0.22em] text-navy-400 hover:text-sun-300">Staff login</a>
         </div>
     </div>
-    <div class="border-t border-white/10 text-center text-[11px] tracking-wider uppercase text-navy-400 py-4">© {{ date('Y') }} Kusina · Edson, Alberta</div>
+    <div class="border-t border-white/10 text-center text-[11px] tracking-wider uppercase text-navy-400 py-4">© {{ date('Y') }} Kusi Nna Restaurant · Edson, Alberta</div>
 </footer>
 
 {{-- Cart drawer --}}

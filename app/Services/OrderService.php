@@ -96,7 +96,7 @@ class OrderService
             try {
                 [$sessionId, $checkoutUrl] = $this->stripe->createCheckout(
                     (float) $order->amount_due,
-                    'Kusina order '.$order->code,
+                    'Kusi Nna order '.$order->code,
                     $order->code,
                     route('track', $order->code),
                     route('track', $order->code),

@@ -1,0 +1,100 @@
+# Render Blueprint: deploys Kusina as ONE free web service built from the Dockerfile.
+# (website + live-updates server in a single container; see DEPLOY-RENDER.md)
+#
+# Render prompts you for the values marked `sync: false` when you create the Blueprint.
+services:
+  - type: web
+    name: kusina
+    runtime: docker
+    plan: free
+    region: oregon            # closest Render region to Alberta; use ohio/frankfurt/singapore if you prefer
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    envVars:
+      # --- how this container runs -----------------------------------------
+      - key: CONTAINER_ROLE
+        value: all             # website + WebSocket server in one container
+      - key: RUN_MIGRATIONS
+        value: "true"
+      - key: FPM_MAX_CHILDREN  # the free instance is small: keep PHP lean
+        value: "3"
+      - key: FPM_START_SERVERS
+        value: "1"
+      - key: FPM_MIN_SPARE
+        value: "1"
+      - key: FPM_MAX_SPARE
+        value: "2"
+
+      # --- Laravel ---------------------------------------------------------
+      - key: APP_NAME
+        value: Kusi Nna Restaurant
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_TIMEZONE
+        value: America/Edmonton
+      - key: APP_KEY           # generate: php artisan key:generate --show
+        sync: false
+      # APP_URL is optional: if unset, the app uses Render's public URL automatically.
+      - key: TRUSTED_PROXIES
+        value: "*"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync            # no separate worker on the free plan
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+
+      # --- Database: TiDB Cloud free (MySQL-compatible, TLS required) -------
+      - key: DB_CONNECTION
+        value: mysql
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "4000"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: MYSQL_ATTR_SSL_CA
+        value: /etc/ssl/certs/ca-certificates.crt
+
+      # --- Live updates (Reverb runs inside this same container) -----------
+      - key: BROADCAST_CONNECTION
+        value: reverb
+      - key: REVERB_HOST
+        value: 127.0.0.1
+      - key: REVERB_PORT
+        value: "8080"
+      - key: REVERB_SCHEME
+        value: http
+      - key: REVERB_SERVER_PORT
+        value: "8080"
+      - key: REVERB_APP_ID
+        value: "100001"
+      - key: REVERB_APP_KEY    # public identifier (the browser reads it); not a secret
+        value: kusina-live
+      - key: REVERB_APP_SECRET
+        generateValue: true
+
+      # --- Restaurant details (edit later in the Render dashboard) -----------
+      - key: KUSINA_ADDRESS
+        value: Edson, Alberta, Canada
+      - key: KUSINA_TAX_RATE
+        value: "0.05"
+      - key: KUSINA_DELIVERY_FEE
+        value: "5"
+      - key: KUSINA_COURIER
+        value: manual
+      - key: KUSINA_GEOCODER
+        value: none            # avoids calling OpenStreetMap from a demo; set to nominatim when you want delivery-zone checks

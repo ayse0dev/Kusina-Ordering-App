@@ -26,7 +26,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             @foreach ($photos as $p)
                 <figure class="group relative aspect-square bg-navy-100 overflow-hidden border border-cream-line">
-                    <img src="{{ $p->url }}" alt="{{ $p->caption ?? 'Kusina dish' }}" class="w-full h-full object-cover" loading="lazy">
+                    <img src="{{ $p->url }}" alt="{{ $p->caption ?? 'Kusi Nna dish' }}" class="w-full h-full object-cover" loading="lazy">
                     <form method="POST" action="{{ route('admin.gallery.destroy', $p) }}" x-data @submit="if (!confirm('Remove this photo?')) $event.preventDefault()"
                           class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition flex items-end justify-between gap-2">
                         @csrf @method('DELETE')

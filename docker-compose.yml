@@ -8,14 +8,7 @@
 
 x-app: &app
   image: kusina-app:latest
-  build:
-    context: .
-    args:
-      # Baked into the browser JS at build time: the PUBLIC websocket address (same domain, port 443).
-      VITE_REVERB_APP_KEY: ${REVERB_APP_KEY}
-      VITE_REVERB_HOST: ${DOMAIN}
-      VITE_REVERB_PORT: "443"
-      VITE_REVERB_SCHEME: https
+  build: .
   env_file: .env.production
   restart: unless-stopped
   depends_on:

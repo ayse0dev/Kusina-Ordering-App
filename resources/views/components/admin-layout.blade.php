@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Admin' }} · Kusina Admin</title>
+    <meta name="reverb-key" content="{{ config('reverb.apps.apps.0.key') }}">
+    <title>{{ $title ?? 'Admin' }} · Kusi Nna Restaurant Admin</title>
     <link rel="preconnect" href="https://fonts.bunny.net"><link href="https://fonts.bunny.net/css?family=lato:300,400,700|josefin-sans:400,600,700|great-vibes:400&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -12,7 +13,7 @@
 <div class="ribbon"></div>
 <header class="bg-navy-900 text-navy-100">
     <div class="max-w-[1400px] mx-auto px-4 h-14 flex items-center gap-4">
-        <a href="{{ route('admin.orders') }}" class="flex items-center gap-2 text-white"><x-sinag class="w-5 h-5 text-sun-400" /><span class="font-script text-3xl leading-none text-sun-300 pt-1">Kusina</span><span class="font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-navy-300">Admin</span></a>
+        <a href="{{ route('admin.orders') }}" class="flex items-center gap-2 text-white"><x-sinag class="w-5 h-5 text-sun-400" /><span class="font-script text-3xl leading-none text-sun-300 pt-1">Kusi Nna</span><span class="font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-navy-300">Admin</span></a>
         <nav class="flex items-center gap-1 text-sm overflow-x-auto">
             @php
                 $links = [

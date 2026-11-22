@@ -86,7 +86,7 @@ class GrabExpressCourier implements CourierProvider
         $qty = max(1, (int) $items->sum('qty'));
 
         return [[
-            'name' => 'Kusina food order',
+            'name' => 'Kusi Nna food order',
             'description' => $order ? 'Order '.$order->code : 'Hot food',
             'quantity' => $qty,
             'price' => $order ? (float) $order->subtotal : $price,
@@ -148,7 +148,7 @@ class GrabExpressCourier implements CourierProvider
                 'coordinates' => ['latitude' => (float) $delivery->dropoff_lat, 'longitude' => (float) $delivery->dropoff_lng],
             ],
             'recipient' => ['firstName' => $order->customer_name, 'phone' => Phone::e164($order->customer_phone), 'smsEnabled' => true],
-            'sender' => ['firstName' => $p['name'] ?: 'Kusina', 'companyName' => $p['name'] ?: 'Kusina',
+            'sender' => ['firstName' => $p['name'] ?: 'Kusi Nna', 'companyName' => $p['name'] ?: 'Kusi Nna',
                 'phone' => $p['phone'] ? Phone::e164($p['phone']) : null, 'smsEnabled' => false],
         ]);
         if (! $r->successful() || ! $r->json('deliveryID')) {

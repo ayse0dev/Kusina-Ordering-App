@@ -11,7 +11,7 @@ class PageController extends Controller
     public function home()
     {
         $photos = GalleryPhoto::orderBy('sort_order')->orderByDesc('id')->limit(12)->get()
-            ->map(fn ($p) => ['url' => $p->url, 'alt' => $p->caption ?: 'A dish from Kusina'])->values();
+            ->map(fn ($p) => ['url' => $p->url, 'alt' => $p->caption ?: 'A dish from Kusi Nna'])->values();
 
         return view('pages.home', compact('photos'));
     }

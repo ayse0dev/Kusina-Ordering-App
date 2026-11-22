@@ -2,24 +2,16 @@
 #
 # One image, several roles (set CONTAINER_ROLE): web | reverb | queue
 #   web    nginx + php-fpm serving the site
+#   all    web + the WebSocket server in ONE container (for small single-container hosts such as Render's free tier)
 #   reverb the WebSocket server (live orders / reservations)
 #   queue  the queue worker
 #
-# Build:  docker build -t kusina-app .   (see DEPLOY.md; docker-compose.yml passes the build args)
+# Build:  docker build -t kusina-app .   (see DEPLOY.md). No build arguments are needed: the browser
+# reads the live-updates settings at runtime.
 
 # ---------------------------------------------------------------- 1) front-end assets
 FROM node:22-alpine AS assets
 WORKDIR /app
-
-# The browser needs the PUBLIC websocket address, which Vite bakes into the JS at build time.
-ARG VITE_REVERB_APP_KEY
-ARG VITE_REVERB_HOST
-ARG VITE_REVERB_PORT=443
-ARG VITE_REVERB_SCHEME=https
-ENV VITE_REVERB_APP_KEY=$VITE_REVERB_APP_KEY \
-    VITE_REVERB_HOST=$VITE_REVERB_HOST \
-    VITE_REVERB_PORT=$VITE_REVERB_PORT \
-    VITE_REVERB_SCHEME=$VITE_REVERB_SCHEME
 
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -57,6 +49,7 @@ COPY docker/php/www.conf /usr/local/etc/php-fpm.d/zz-www.conf
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY docker/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY docker/supervisor/supervisord-all.conf /etc/supervisor/supervisord-all.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
 
@@ -73,6 +66,6 @@ ENV APP_ENV=production \
     APP_DEBUG=false
 
 EXPOSE 80 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD wget -qO- http://127.0.0.1/up >/dev/null 2>&1 || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s CMD wget -qO- http://127.0.0.1:${PORT:-80}/up >/dev/null 2>&1 || exit 1
 
 ENTRYPOINT ["entrypoint"]

@@ -14,7 +14,7 @@
         <div class="mt-8 space-y-5 text-navy-600 leading-relaxed">
             <p>Growing up Filipino means growing up around food: the sizzle of garlic rice before sunrise, a pot of adobo simmering for Sunday lunch, relatives crowding the kitchen long before anyone is hungry. Cooking was how our families said <em>I love you</em>, and the table was where everyone belonged.</p>
             <p>When our family made the journey to Canada, we brought our recipes with us, written in memory more than on paper. Finding the right ingredients was a challenge, and the first batch of sinigang in a new kitchen never tasted exactly like home. But we kept cooking, adjusting, and sharing, until neighbours and friends started asking for a seat at our table.</p>
-            <p>Kusina grew from those gatherings. Today we are proud to bring Filipino delicacies to Edson and everyone who passes through, from the classics our lolas taught us to the comfort dishes that remind newcomers of home and introduce curious guests to something new.</p>
+            <p>Kusi Nna grew from those gatherings. Today we are proud to bring Filipino delicacies to Edson and everyone who passes through, from the classics our lolas taught us to the comfort dishes that remind newcomers of home and introduce curious guests to something new.</p>
             <p>Every plate is cooked fresh, seasoned the way we were taught, and served with <em>malasakit</em>, the Filipino word for caring deeply about the people you serve. Salamat po for letting us share it with you.</p>
         </div>
 

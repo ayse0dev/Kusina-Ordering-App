@@ -11,7 +11,7 @@
         <div class="mx-auto grid place-items-center w-24 h-24 rounded-full border border-sun-400/80">
             <x-sinag class="w-14 h-14 text-sun-400" />
         </div>
-        <p class="mt-4 font-display text-sm font-semibold uppercase tracking-[0.5em] text-sun-300 pl-[0.5em]">Kusina</p>
+        <p class="mt-4 font-display text-sm font-semibold uppercase tracking-[0.5em] text-sun-300 pl-[0.5em]">Kusi Nna Restaurant</p>
         <p class="font-display text-[10px] uppercase tracking-[0.4em] text-white/60 mt-1">Lutong Pinoy · Edson, Alberta</p>
 
         <h1 class="mt-10 text-3xl sm:text-5xl font-bold leading-tight">Authentic Filipino dining</h1>
@@ -95,7 +95,7 @@
         ['Gift vouchers & offers', 'Share the taste of home with a gift voucher, or save with a discount code.', 'Gift vouchers', route('vouchers.index')],
     ];
 @endphp
-<section class="relative bg-navy-950 text-white overflow-hidden pattern-sinag" aria-roledescription="carousel" aria-label="Why Kusina"
+<section class="relative bg-navy-950 text-white overflow-hidden pattern-sinag" aria-roledescription="carousel" aria-label="Why Kusi Nna"
          x-data="featureSlider({ count: {{ count($features) }} })"
          @mouseenter="paused = true" @mouseleave="paused = false" @focusin="paused = true" @focusout="paused = false"
          @keydown.arrow-right="next()" @keydown.arrow-left="prev()"
@@ -103,7 +103,7 @@
     <div class="ribbon"></div>
 
     <div class="max-w-6xl mx-auto px-4 pt-16 text-center">
-        <h2 class="font-display uppercase tracking-[0.12em] font-semibold text-3xl">Why Kusina</h2>
+        <h2 class="font-display uppercase tracking-[0.12em] font-semibold text-3xl">Why Kusi Nna</h2>
         <span class="block w-14 h-0.5 bg-sun-400 mx-auto mt-2"></span>
         <p class="font-script text-4xl text-sun-300 mt-3">Ang aming handog</p>
     </div>
@@ -169,7 +169,7 @@
         <h2 class="section-title text-3xl">Our story</h2>
         <span class="section-rule mx-auto"></span>
         <p class="mt-6 italic text-navy-600 text-lg">From a Filipino family table to the heart of Alberta.</p>
-        <p class="mt-4 text-navy-500 leading-relaxed">Kusina is about carrying the flavours, and the warmth, of the Philippines across an ocean and sharing them with our neighbours in Canada.</p>
+        <p class="mt-4 text-navy-500 leading-relaxed">Kusi Nna is about carrying the flavours, and the warmth, of the Philippines across an ocean and sharing them with our neighbours in Canada.</p>
         <p class="mt-8"><a href="{{ route('about') }}" class="link-gold-dark">Read our story</a></p>
     </div>
 </section>

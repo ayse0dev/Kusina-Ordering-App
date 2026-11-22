@@ -1,6 +1,6 @@
-# Rendered by entrypoint with envsubst: ${NGINX_RESOLVER}, ${REVERB_UPSTREAM}
+# Rendered by entrypoint with envsubst: ${PORT}, ${NGINX_RESOLVER}, ${REVERB_UPSTREAM}
 server {
-    listen 80 default_server;
+    listen ${PORT} default_server;
     server_name _;
 
     # Only /public is ever web-accessible: .env, vendor/, storage/ and the app code are not reachable.

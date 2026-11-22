@@ -20,7 +20,7 @@ return [
 
         // Where couriers collect the food. Set a precise street address and coordinates.
         'pickup' => [
-            'name' => env('KUSINA_PICKUP_NAME', 'Kusina'),
+            'name' => env('KUSINA_PICKUP_NAME', 'Kusi Nna Restaurant'),
             'address' => env('KUSINA_PICKUP_ADDRESS', ''),          // falls back to the contact address
             'phone' => env('KUSINA_PICKUP_PHONE', ''),
             'lat' => env('KUSINA_PICKUP_LAT'),
