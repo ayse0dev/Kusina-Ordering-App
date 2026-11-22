@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Log;
 
 class CourierManager
 {
-    /** @return array<string, class-string<CourierProvider>> */
     private const PROVIDERS = [
         'manual' => ManualCourier::class,
         'uber' => UberDirectCourier::class,
@@ -27,10 +26,6 @@ class CourierManager
         return app(self::PROVIDERS[$key]);
     }
 
-    /**
-     * The courier to use for NEW deliveries. If the chosen one is missing credentials we fall back
-     * to the restaurant's own driver rather than failing every delivery order.
-     */
     public function active(): CourierProvider
     {
         $p = $this->provider($this->configuredKey());
@@ -44,7 +39,6 @@ class CourierManager
         return $p;
     }
 
-    /** Provider for an existing delivery (the one it was booked with, regardless of today's setting). */
     public function for(string $key): CourierProvider
     {
         return $this->provider($key);

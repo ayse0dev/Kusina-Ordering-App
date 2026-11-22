@@ -7,11 +7,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Never store an uploaded file as-is. We decode the pixels with GD and write a
- * brand-new WebP under a random name, so any embedded payload (e.g. PHP in
- * EXIF/comment data) is discarded.
- */
 class ImageSanitizer
 {
     private const MAX_DIMENSION = 1200;

@@ -11,12 +11,12 @@ return new class extends Migration
         Schema::create('deliveries', function (Blueprint $t) {
             $t->id();
             $t->foreignId('order_id')->unique()->constrained()->cascadeOnDelete();
-            $t->string('provider', 20);                       // manual | uber | grab
+            $t->string('provider', 20);
             $t->string('status', 20)->default('pending')->index();
             $t->string('provider_delivery_id')->nullable()->index();
             $t->string('quote_id')->nullable();
             $t->decimal('quoted_fee', 10, 2)->default(0);
-            $t->string('fee_source', 10)->default('flat');    // courier | flat
+            $t->string('fee_source', 10)->default('flat');
             $t->unsignedSmallInteger('eta_minutes')->nullable();
             $t->decimal('dropoff_lat', 10, 7)->nullable();
             $t->decimal('dropoff_lng', 10, 7)->nullable();

@@ -8,7 +8,6 @@
 <section class="bg-white">
     <div class="max-w-5xl mx-auto px-4 py-14 grid gap-12 md:grid-cols-5">
 
-        {{-- Buy a gift voucher --}}
         <div class="md:col-span-3" x-data="giftForm(@js(['presets' => $presets, 'min' => $min, 'max' => $max, 'amount' => old('amount', $presets[1] ?? 50)]))">
             <h2 class="section-title text-xl">Buy a gift voucher</h2><span class="section-rule"></span>
             <p class="text-sm text-navy-500 mt-3">Delivered by email with a unique code. Redeem it at checkout toward any order, and use it over several visits until the balance runs out. Amounts are in CAD.</p>
@@ -52,7 +51,6 @@
             </form>
         </div>
 
-        {{-- Check / use a code --}}
         <aside class="md:col-span-2 space-y-8">
             <div x-data="voucherCheck()">
                 <h2 class="section-title text-xl">Check a code</h2><span class="section-rule"></span>

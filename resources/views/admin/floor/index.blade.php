@@ -27,6 +27,7 @@
                 <div x-ref="canvas" @pointermove="move($event)" @pointerup="up()" @pointerleave="up()"
                      class="relative w-full rounded-lg bg-stone-100 border border-dashed border-stone-300 overflow-hidden select-none touch-none"
                      :style="`aspect-ratio: ${floor.width} / ${floor.height}; background-image: radial-gradient(#d6d3d1 1px, transparent 1px); background-size: ${10 / floor.width * 100}% ${10 / floor.height * 100}%`">
+                    <x-floor-backdrop />
                     <template x-for="t in floor.tables" :key="t._k">
                         <div @pointerdown.prevent="down($event, t)"
                              class="absolute border-2 flex flex-col items-center justify-center leading-tight cursor-move text-stone-800"

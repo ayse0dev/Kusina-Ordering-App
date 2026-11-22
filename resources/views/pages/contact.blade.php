@@ -40,7 +40,6 @@
 
             <form method="POST" action="{{ route('contact.store') }}" class="mt-6 space-y-4">
                 @csrf
-                {{-- Honeypot: hidden from people, tempting to bots --}}
                 <div class="hidden" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
 
                 <div class="grid gap-4 sm:grid-cols-2">

@@ -19,17 +19,16 @@ return new class extends Migration
         Schema::create('vouchers', function (Blueprint $t) {
             $t->id();
             $t->string('code', 32)->unique();
-            $t->string('kind', 10);                       // discount | gift
-            $t->string('status', 10)->default('active');  // pending (gift awaiting payment) | active | void
-            $t->string('type', 10)->nullable();           // discount only: percent | fixed
-            $t->decimal('value', 10, 2);                  // percent, fixed amount, or gift face value
-            $t->decimal('balance', 10, 2)->nullable();    // gift remaining balance
+            $t->string('kind', 10);
+            $t->string('status', 10)->default('active');
+            $t->string('type', 10)->nullable();
+            $t->decimal('value', 10, 2);
+            $t->decimal('balance', 10, 2)->nullable();
             $t->decimal('min_spend', 10, 2)->nullable();
             $t->unsignedInteger('max_uses')->nullable();
             $t->unsignedInteger('uses')->default(0);
             $t->timestamp('expires_at')->nullable();
             $t->string('description')->nullable();
-            // gift purchase details
             $t->string('buyer_name')->nullable();
             $t->string('buyer_email')->nullable();
             $t->string('recipient_name')->nullable();

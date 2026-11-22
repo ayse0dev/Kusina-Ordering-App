@@ -13,7 +13,6 @@ class StripeWebhookController extends Controller
 {
     public function __invoke(Request $request, StripeService $stripe, OrderService $orders, VoucherService $vouchers)
     {
-        // Authenticity comes only from the HMAC signature over the raw body.
         if (! $stripe->verifySignature($request->getContent(), $request->header('Stripe-Signature'))) {
             abort(403, 'Invalid signature');
         }
@@ -27,7 +26,6 @@ class StripeWebhookController extends Controller
             $paidCents = (int) ($session['amount_total'] ?? 0);
 
             if ($order = Order::where('stripe_session_id', $sessionId)->first()) {
-                // Only trust the payment if it covers what was due.
                 if ($paidCents >= (int) round($order->amount_due * 100)) {
                     $orders->markPaid($order);
                 }

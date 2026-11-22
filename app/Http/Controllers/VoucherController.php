@@ -38,7 +38,6 @@ class VoucherController extends Controller
         return redirect()->away($url);
     }
 
-    /** Where Stripe sends the buyer back; shows the code once payment is confirmed by webhook. */
     public function show(string $token)
     {
         $voucher = Voucher::where('public_token', $token)->where('kind', 'gift')->firstOrFail();
@@ -53,7 +52,6 @@ class VoucherController extends Controller
         return response()->json(['status' => $voucher->status]);
     }
 
-    /** Public balance check (code is the secret; throttled to prevent guessing). */
     public function check(Request $request)
     {
         $data = $request->validate(['code' => ['required', 'string', 'max:40']]);

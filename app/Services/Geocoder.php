@@ -6,11 +6,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
-/**
- * Address → coordinates, used for the delivery-zone check (and required by GrabExpress).
- * Default: OpenStreetMap Nominatim (free; keep volume low, results are cached).
- * Set KUSINA_GEOCODER=none to disable.
- */
 class Geocoder
 {
     public function enabled(): bool
@@ -18,7 +13,6 @@ class Geocoder
         return config('kusina.delivery.geocoder.driver') === 'nominatim';
     }
 
-    /** @return array{lat: float, lng: float}|null */
     public function locate(string $address): ?array
     {
         $address = trim(preg_replace('/\s+/', ' ', $address));
@@ -37,12 +31,11 @@ class Geocoder
 
                 return $hit ? ['lat' => (float) $hit['lat'], 'lng' => (float) $hit['lon']] : null;
             } catch (Throwable) {
-                return null;   // never block ordering because the map service is down
+                return null;
             }
         });
     }
 
-    /** Coordinates of the restaurant (configured, otherwise geocoded from its address). */
     public function pickup(): ?array
     {
         $p = config('kusina.delivery.pickup');
@@ -53,7 +46,6 @@ class Geocoder
         return ($p['address'] ?? '') !== '' ? $this->locate($p['address']) : null;
     }
 
-    /** Great-circle distance in kilometres. */
     public static function distanceKm(array $a, array $b): float
     {
         $r = 6371.0;

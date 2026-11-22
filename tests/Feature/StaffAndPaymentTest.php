@@ -36,7 +36,6 @@ class StaffAndPaymentTest extends TestCase
         ]);
     }
 
-    // ---- access control ----
     public function test_admin_area_requires_staff_role(): void
     {
         $this->get('/admin/orders')->assertRedirect('/login');
@@ -64,19 +63,18 @@ class StaffAndPaymentTest extends TestCase
         $this->get('/register')->assertNotFound();
     }
 
-    // ---- status transitions ----
     public function test_pickup_flow_and_illegal_jumps(): void
     {
         $staff = $this->user('staff');
         $o = $this->order();
 
-        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertOk();  // -> preparing
-        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertOk();  // -> ready
-        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertOk();  // -> completed (pickup skips delivery)
+        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertOk();
+        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertOk();
+        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertOk();
         $this->assertSame(OrderStatus::Completed, $o->fresh()->status);
 
         $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/advance")->assertStatus(422);
-        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/cancel")->assertStatus(422); // finished orders can't be cancelled
+        $this->actingAs($staff)->postJson("/admin/orders/{$o->id}/cancel")->assertStatus(422);
     }
 
     public function test_delivery_goes_through_out_for_delivery(): void
@@ -92,7 +90,6 @@ class StaffAndPaymentTest extends TestCase
         $this->actingAs($this->user('staff'))->postJson("/admin/orders/{$o->id}/advance")->assertStatus(422);
     }
 
-    // ---- Stripe webhook ----
     private function webhook(string $type, int $cents, string $secret = 'whsec_test', ?int $ts = null, string $status = 'paid')
     {
         $body = json_encode(['type' => $type, 'data' => ['object' => ['id' => 'cs_123', 'payment_status' => $status, 'amount_total' => $cents]]]);
@@ -151,7 +148,6 @@ class StaffAndPaymentTest extends TestCase
         $this->assertSame('cancelled', $o->fresh()->status->value);
         $this->assertSame('failed', $o->fresh()->payment_status);
     }
-    // ---- uploads ----
     public function test_php_file_disguised_as_image_is_rejected(): void
     {
         Storage::fake('public');
@@ -173,10 +169,9 @@ class StaffAndPaymentTest extends TestCase
         $path = \App\Support\ImageSanitizer::store($img);
 
         $this->assertMatchesRegularExpression('#^menu/[A-Za-z0-9]{40}\.webp$#', $path);
-        $this->assertStringStartsWith('RIFF', Storage::disk('public')->get($path)); // real WebP container
+        $this->assertStringStartsWith('RIFF', Storage::disk('public')->get($path));
     }
 
-    // ---- headers ----
     public function test_security_headers_present(): void
     {
         $this->get('/')->assertHeader('X-Frame-Options', 'SAMEORIGIN')->assertHeader('X-Content-Type-Options', 'nosniff')

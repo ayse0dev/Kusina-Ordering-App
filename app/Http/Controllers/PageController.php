@@ -28,7 +28,6 @@ class PageController extends Controller
 
     public function contactStore(Request $request)
     {
-        // Honeypot: real visitors never fill this hidden field.
         if ($request->filled('website')) {
             return redirect()->route('contact')->with('status', 'Thank you! We’ll be in touch soon.');
         }

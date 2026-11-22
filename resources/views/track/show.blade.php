@@ -8,20 +8,21 @@
     <div class="bg-white rounded-2xl border border-cream-line shadow-card p-6">
         <p class="text-sm text-stone-500">Order number</p>
         <p class="text-2xl font-bold tracking-wide">{{ $order->code }}</p>
-        <p class="text-sm text-stone-500 mt-1">{{ $order->order_type->label() }} · {{ $order->created_at->format('M j, g:i A') }}</p>
+        <p class="text-sm text-stone-500 mt-1">{{ $order->order_type->label() }}@if ($order->table_number) · Table {{ $order->table_number }}@endif · {{ $order->created_at->format('M j, g:i A') }}</p>
+        <p class="mt-2"><a href="{{ route('track.receipt', $order->code) }}" target="_blank" class="text-sm text-brand-700 hover:underline">🖨 View / print receipt</a></p>
 
-        {{-- Payment notices --}}
         @if ($order->payment_method === 'online')
             <div x-show="payment !== 'paid' && status !== 'cancelled'" x-cloak class="mt-4 rounded-lg bg-sun-50 border border-sun-200 text-sun-800 text-sm px-4 py-2">
                 Waiting for payment confirmation… this page will update automatically.
             </div>
+        @elseif ($order->payment_status === 'paid' && $order->payment_ref)
+            <p class="mt-4 text-sm text-emerald-700">Paid with {{ config("kusina.payment_methods.{$order->payment_method}.label", ucfirst($order->payment_method)) }}@if ($order->payment_detail) ({{ $order->payment_detail }})@endif · ref {{ $order->payment_ref }}. Thank you!</p>
         @else
             @if ($order->amount_due > 0)<p class="mt-4 text-sm text-stone-600">Please pay at the counter. Amount due: <strong>${{ number_format($order->amount_due, 2) }}</strong></p>@else<p class="mt-4 text-sm text-emerald-700">Paid in full with your voucher. Thank you!</p>@endif
         @endif
 
         <div x-show="status === 'cancelled'" x-cloak class="mt-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-2 text-sm">This order was cancelled.</div>
 
-        {{-- Delivery / courier --}}
         <template x-if="delivery">
             <div class="mt-5 border border-cream-line bg-cream p-4 text-sm">
                 <p class="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-navy-900">Delivery</p>
@@ -33,7 +34,6 @@
             </div>
         </template>
 
-        {{-- Timeline --}}
         <ol class="mt-6 space-y-0" x-show="status !== 'cancelled'">
             <template x-for="(s, i) in steps" :key="s.key">
                 <li class="flex gap-3">

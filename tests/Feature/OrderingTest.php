@@ -52,7 +52,7 @@ class OrderingTest extends TestCase
     {
         $this->add(['option_ids' => [$this->sizes['big']->id, $this->egg->id], 'price' => 1])
             ->assertOk()
-            ->assertJsonPath('lines.0.unit_price', 170)   // 100 + 50 + 20; client "price" ignored
+            ->assertJsonPath('lines.0.unit_price', 170)
             ->assertJsonPath('subtotal', 340);
     }
 
@@ -67,8 +67,8 @@ class OrderingTest extends TestCase
         $foreign = $other->optionGroups()->create(['name' => 'G', 'type' => 'single'])->options()->create(['name' => 'Foreign', 'price_delta' => -999]);
 
         $this->add(['option_ids' => [$this->sizes['solo']->id, $foreign->id]])->assertStatus(422);
-        $this->add(['option_ids' => [$this->sizes['solo']->id, $this->sizes['big']->id]])->assertStatus(422); // single group
-        $this->add(['option_ids' => [$this->sizes['solo']->id, $this->egg->id, $this->bacon->id]])->assertStatus(422); // max 1
+        $this->add(['option_ids' => [$this->sizes['solo']->id, $this->sizes['big']->id]])->assertStatus(422);
+        $this->add(['option_ids' => [$this->sizes['solo']->id, $this->egg->id, $this->bacon->id]])->assertStatus(422);
     }
 
     public function test_unavailable_item_cannot_be_added(): void
@@ -92,11 +92,10 @@ class OrderingTest extends TestCase
         $order = Order::with('items.options')->first();
         $this->assertSame('pending', $order->status->value);
         $this->assertEquals(300, $order->subtotal);
-        $this->assertEquals(15, $order->tax);          // 5% GST
+        $this->assertEquals(15, $order->tax);
         $this->assertEquals(315, $order->total);
         $this->assertSame('Big', $order->items[0]->options[0]->name);
 
-        // Later menu changes must not alter the placed order.
         $this->item->update(['base_price' => 999]);
         $this->assertEquals(150, $order->fresh()->items[0]->unit_price);
 
@@ -109,7 +108,7 @@ class OrderingTest extends TestCase
         $this->post('/checkout', $this->checkoutData(['order_type' => 'delivery']))->assertSessionHasErrors('delivery_address');
 
         $this->post('/checkout', $this->checkoutData(['order_type' => 'delivery', 'delivery_address' => '1 Rizal St']));
-        $this->assertEquals(320.25, Order::first()->total);   // (300 + $5 delivery) + 5% GST
+        $this->assertEquals(320.25, Order::first()->total);
     }
 
     public function test_online_payment_without_provider_fails_cleanly(): void

@@ -12,11 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-/**
- * Uber Direct (available in Canada). Written against Uber's published "Direct" API:
- * OAuth client-credentials, delivery quotes, deliveries, signed status webhooks.
- * NOT verified against a live account: test in Uber's sandbox before going live.
- */
 class UberDirectCourier implements CourierProvider
 {
     private const AUTH = 'https://auth.uber.com/oauth/v2/token';
@@ -86,7 +81,6 @@ class UberDirectCourier implements CourierProvider
             throw new CourierException($r->json('message') ?: 'Uber could not quote this address.');
         }
 
-        // Safety: never charge a quote in a different currency than the restaurant's.
         if (strtoupper((string) $r->json('currency')) !== strtoupper(config('kusina.currency'))) {
             throw new CourierException('Courier quoted in an unexpected currency.');
         }
@@ -106,7 +100,7 @@ class UberDirectCourier implements CourierProvider
         $p = config('kusina.delivery.pickup');
 
         $payload = array_filter([
-            'quote_id' => ($delivery->quote_id && $delivery->created_at?->gt(now()->subMinutes(10))) ? $delivery->quote_id : null,   // quotes expire quickly
+            'quote_id' => ($delivery->quote_id && $delivery->created_at?->gt(now()->subMinutes(10))) ? $delivery->quote_id : null,
             'pickup_name' => $p['name'] ?: 'Kusi Nna',
             'pickup_address' => $this->pickupAddress(),
             'pickup_phone_number' => $p['phone'] ? Phone::e164($p['phone']) : null,
@@ -144,7 +138,6 @@ class UberDirectCourier implements CourierProvider
         }
     }
 
-    /** HMAC-SHA256 of the raw body, hex, using the webhook signing key. */
     public function verifyWebhook(Request $request): bool
     {
         $key = $this->cfg('signing_key');
@@ -187,7 +180,7 @@ class UberDirectCourier implements CourierProvider
             'delivered' => DeliveryStatus::Delivered,
             'canceled', 'cancelled' => DeliveryStatus::Cancelled,
             'returned', 'failed' => DeliveryStatus::Failed,
-            default => DeliveryStatus::Requested,   // pending
+            default => DeliveryStatus::Requested,
         };
     }
 }

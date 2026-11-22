@@ -1,31 +1,37 @@
 <x-kusina-layout title="Home">
 @php $heroPhoto = file_exists(public_path('images/hero.jpg')); @endphp
 
-{{-- Receiving area --}}
 <section class="relative isolate overflow-hidden text-center text-white min-h-[82vh] flex items-center">
-    <div class="absolute inset-0 -z-20 hero-ambient"
-         @if ($heroPhoto) style="background-image:url('{{ asset('images/hero.jpg') }}');background-size:cover;background-position:center" @endif></div>
-    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-black/65 via-black/45 to-black/85"></div>
+    <div class="absolute inset-x-0 -top-24 -bottom-24 -z-20" data-parallax="0.28">
+        <div class="absolute inset-0 hero-ambient animate-kenburns"
+             @if ($heroPhoto) style="background-image:url('{{ asset('images/hero.jpg') }}');background-size:cover;background-position:center" @endif></div>
+    </div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-black/30 via-black/10 to-black/60"></div>
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.5),transparent_68%)]"></div>
 
-    <div class="mx-auto max-w-3xl px-4 py-24">
-        <div class="mx-auto grid place-items-center w-24 h-24 rounded-full border border-sun-400/80">
-            <x-sinag class="w-14 h-14 text-sun-400" />
+    <div class="mx-auto max-w-3xl px-4 py-24" data-scroll-fade>
+        <div class="relative mx-auto w-24 h-24 animate-float">
+            <span class="absolute inset-0 rounded-full border border-sun-300/70 animate-pulse-ring"></span>
+            <span class="absolute inset-0 rounded-full border border-sun-300/50 animate-pulse-ring [animation-delay:1.6s]"></span>
+            <div class="relative grid place-items-center w-24 h-24 rounded-full border border-sun-300 bg-black/35 backdrop-blur-sm overflow-hidden shadow-[0_0_28px_rgba(201,164,92,0.45)]">
+                <x-sinag class="w-14 h-14 text-sun-300" :spin="true" />
+                <span class="ring-sweep animate-ring-sweep"></span>
+            </div>
         </div>
-        <p class="mt-4 font-display text-sm font-semibold uppercase tracking-[0.5em] text-sun-300 pl-[0.5em]">Kusi Nna Restaurant</p>
-        <p class="font-display text-[10px] uppercase tracking-[0.4em] text-white/60 mt-1">Lutong Pinoy · Edson, Alberta</p>
+        <p class="mt-5 font-display text-sm sm:text-base font-bold uppercase tracking-[0.5em] pl-[0.5em] [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.8))] animate-rise [animation-delay:200ms]"><span class="text-shine animate-shine-text">Kusi Nna Restaurant</span></p>
+        <p class="font-display text-[11px] uppercase tracking-[0.4em] text-white/90 mt-1 [text-shadow:0_1px_8px_rgba(0,0,0,0.9)] animate-rise [animation-delay:320ms]">Lutong Pinoy · Edson, Alberta</p>
 
-        <h1 class="mt-10 text-3xl sm:text-5xl font-bold leading-tight">Authentic Filipino dining</h1>
-        <p class="mt-3 font-script text-3xl sm:text-4xl text-white/90">“Kain na — a taste of home, served with malasakit.”</p>
+        <h1 class="mt-10 text-3xl sm:text-5xl font-bold leading-tight [text-shadow:0_2px_14px_rgba(0,0,0,0.85)] animate-rise [animation-delay:450ms]">Authentic Filipino dining</h1>
+        <p class="mt-3 font-script text-3xl sm:text-4xl text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.9)] animate-rise [animation-delay:600ms]">“Kain na — a taste of home, served with malasakit.”</p>
 
-        <div class="mt-10 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-            <a href="{{ route('menu') }}" class="link-gold">Order online</a>
-            <a href="{{ route('reservations.index') }}" class="link-gold">Reserve a table</a>
-            <a href="{{ route('vouchers.index') }}" class="link-gold">Gift vouchers</a>
+        <div class="mt-10 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 animate-rise [animation-delay:760ms]">
+            <a href="{{ route('menu') }}" class="link-gold [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">Order online</a>
+            <a href="{{ route('reservations.index') }}" class="link-gold [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">Reserve a table</a>
+            <a href="{{ route('vouchers.index') }}" class="link-gold [text-shadow:0_1px_6px_rgba(0,0,0,0.8)]">Gift vouchers</a>
         </div>
     </div>
 </section>
 
-{{-- Pictures of our food --}}
 <section class="bg-white">
     <div class="max-w-6xl mx-auto px-4 py-16">
         <div class="text-center">
@@ -35,7 +41,6 @@
         </div>
 
         @php
-            // A varied mosaic: some tiles are larger. `grid-flow-dense` fills any gaps.
             $spans = ['col-span-2 row-span-2', '', 'row-span-2', '', '', 'col-span-2', '', 'row-span-2', '', 'col-span-2', '', ''];
         @endphp
 
@@ -55,7 +60,6 @@
                     @endforeach
                 </div>
 
-                {{-- Viewer --}}
                 <div x-cloak x-show="open !== null" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" @click.self="open = null">
                     <button type="button" @click="open = null" class="absolute top-4 right-5 text-3xl text-white/80 hover:text-white" aria-label="Close">✕</button>
                     <button type="button" @click="show(open - 1)" class="absolute left-3 sm:left-6 text-4xl text-white/70 hover:text-sun-300 px-2" aria-label="Previous">‹</button>
@@ -66,7 +70,6 @@
                 </div>
             </div>
         @else
-            {{-- No photos uploaded yet: a quiet placeholder mosaic --}}
             <div class="mt-10 grid grid-cols-2 md:grid-cols-4 auto-rows-[9.5rem] md:auto-rows-[13rem] grid-flow-dense gap-2 md:gap-3" aria-hidden="true">
                 @foreach (range(0, 7) as $i)
                     <div class="hero-ambient grid place-items-center border border-sun-400/20 {{ $spans[$i % count($spans)] }}">
@@ -84,7 +87,6 @@
         <p class="text-center mt-10"><a href="{{ route('menu') }}" class="link-gold-dark">See the full menu</a></p>
     </div>
 </section>
-{{-- Features: a slider. Each slide pairs a feature with a food photo; side buttons bring in the next one. --}}
 @php
     $features = [
         ['Authentic recipes', 'Family-style Filipino classics: adobo, sinigang, kare-kare and more, cooked fresh every day.', 'See the menu', route('menu')],
@@ -109,7 +111,6 @@
     </div>
 
     <div class="relative max-w-6xl mx-auto">
-        {{-- Side buttons --}}
         <button type="button" @click="prev()" aria-label="Previous feature"
                 class="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-10 grid place-items-center w-11 h-11 sm:w-12 sm:h-12 rounded-full border border-sun-400/70 bg-navy-950/70 text-sun-300 hover:bg-sun-400 hover:text-navy-950 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sun-400">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
@@ -126,7 +127,6 @@
                     @php $photo = $photos->isNotEmpty() ? $photos[$n % $photos->count()] : null; @endphp
                     <article class="w-full shrink-0 px-14 sm:px-24 py-12 sm:py-16 grid md:grid-cols-2 gap-8 md:gap-14 items-center"
                              role="group" aria-roledescription="slide" aria-label="{{ $n + 1 }} of {{ count($features) }}" :aria-hidden="i !== {{ $n }}">
-                        {{-- Text (alternates sides for rhythm) --}}
                         <div class="{{ $n % 2 ? 'md:order-2' : '' }}">
                             <p class="font-display text-xs tracking-[0.3em] text-sun-400">{{ sprintf('%02d', $n + 1) }} <span class="text-white/30">/ {{ sprintf('%02d', count($features)) }}</span></p>
                             <x-sinag class="w-7 h-7 text-sun-400 mt-4" />
@@ -136,7 +136,6 @@
                             @if ($cta)<p class="mt-7"><a href="{{ $href }}" class="link-gold" :tabindex="i === {{ $n }} ? 0 : -1">{{ $cta }}</a></p>@endif
                         </div>
 
-                        {{-- Food picture --}}
                         <div class="relative {{ $n % 2 ? 'md:order-1' : '' }}">
                             <div class="absolute -inset-2 border border-sun-400/40 translate-x-3 translate-y-3 pointer-events-none"></div>
                             <div class="relative aspect-[4/3] overflow-hidden bg-navy-900">
@@ -153,7 +152,6 @@
         </div>
     </div>
 
-    {{-- Dots --}}
     <div class="flex justify-center gap-2.5 pb-12" role="tablist" aria-label="Choose a feature">
         @foreach ($features as $n => $f)
             <button type="button" role="tab" @click="go({{ $n }})" :aria-selected="i === {{ $n }}" aria-label="Show {{ $f[0] }}"
@@ -163,7 +161,6 @@
     </div>
 </section>
 
-{{-- Story teaser + CTA --}}
 <section class="bg-white">
     <div class="max-w-3xl mx-auto px-4 py-16 text-center">
         <h2 class="section-title text-3xl">Our story</h2>

@@ -22,11 +22,6 @@ class OrderService
         private DeliveryService $deliveries,
     ) {}
 
-    /**
-     * Turn the session cart into an order. Returns [Order, ?checkoutUrl].
-     *
-     * @return array{0: Order, 1: ?string}
-     */
     public function place(array $data): array
     {
         $summary = $this->cart->summary();
@@ -37,7 +32,6 @@ class OrderService
         $type = OrderType::from($data['order_type']);
 
         $order = DB::transaction(function () use ($summary, $data, $type) {
-            // Prices & voucher state are recomputed here, under row locks, never taken from the browser.
             $q = $this->pricing->quote($summary['subtotal'], $type, $data['codes'] ?? [], lock: true, deliveryFee: isset($data['delivery']['fee']) ? (float) $data['delivery']['fee'] : null);
             if ($q['errors']) {
                 throw ValidationException::withMessages(['codes' => implode(' ', $q['errors'])]);
@@ -54,9 +48,8 @@ class OrderService
                 'delivery_address' => $type === OrderType::Delivery ? ($data['delivery_address'] ?? null) : null,
                 'notes' => $data['notes'] ?? null,
                 'status' => OrderStatus::Pending,
-                'payment_method' => $data['payment_method'],
-                'payment_status' => $covered ? 'paid' : 'unpaid',
-                'paid_at' => $covered ? now() : null,
+                'customer_email' => $data['customer_email'] ?? null,
+            ] + $this->paymentFields($data, $covered) + [
                 'subtotal' => $q['subtotal'],
                 'discount' => $q['discount'],
                 'delivery_fee' => $q['delivery_fee'],
@@ -111,6 +104,7 @@ class OrderService
             }
         } else {
             OrderPlaced::dispatch($order);
+            ReceiptMailer::order($order);
         }
 
         $this->cart->clear();
@@ -118,7 +112,17 @@ class OrderService
         return [$order, $checkoutUrl];
     }
 
-    /** Staff-driven status change; enforces the allowed transition. */
+    private function paymentFields(array $data, bool $covered): array
+    {
+        $method = $data['payment_method'];
+
+        if ($covered || ! config("kusina.payment_methods.$method")) {
+            return ['payment_method' => $method, 'payment_status' => $covered ? 'paid' : 'unpaid', 'paid_at' => $covered ? now() : null];
+        }
+
+        return SimulatedPayment::settle($method, $data);
+    }
+
     public function transition(Order $order, OrderStatus $to, ?int $userId = null): Order
     {
         $allowed = $order->status->next($order->order_type);
@@ -135,11 +139,11 @@ class OrderService
         $order->statusLogs()->create(['status' => $to->value, 'user_id' => $userId]);
 
         if ($isCancel) {
-            $this->vouchers->restore($order); // give back any voucher balance / code use
+            $this->vouchers->restore($order);
             $this->deliveries->cancelFor($order);
         } else {
             $this->deliveries->syncManual($order, $to);
-            $this->deliveries->dispatchIfDue($order, $to);   // book the courier at the configured kitchen stage
+            $this->deliveries->dispatchIfDue($order, $to);
         }
 
         OrderUpdated::dispatch($order);
@@ -147,7 +151,6 @@ class OrderService
         return $order;
     }
 
-    /** A courier status update moves the order along (picked up → out for delivery, delivered → completed). */
     public function courierUpdate(Order $order, DeliveryStatus $status): void
     {
         $to = match ($status) {
@@ -164,7 +167,6 @@ class OrderService
         OrderUpdated::dispatch($order);
     }
 
-    /** Idempotently mark an order paid (webhook or staff at counter). */
     public function markPaid(Order $order): Order
     {
         if ($order->payment_status === 'paid') {
@@ -182,7 +184,6 @@ class OrderService
         return $order;
     }
 
-    /** An online payment that never completed (provider error or expired session). */
     public function abandon(Order $order): void
     {
         if ($order->payment_status === 'paid') {

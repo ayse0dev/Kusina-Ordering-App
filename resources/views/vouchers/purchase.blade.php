@@ -2,7 +2,6 @@
 <section class="bg-white">
     <div class="max-w-xl mx-auto px-4 py-16" x-data="voucherPurchase(@js(['token' => $voucher->public_token, 'status' => $voucher->status]))">
 
-        {{-- Waiting for the payment provider to confirm --}}
         <div x-show="status === 'pending'" class="text-center">
             <p class="script text-4xl">Almost there…</p>
             <p class="mt-3 text-navy-600">We’re confirming your payment. This page updates automatically.</p>

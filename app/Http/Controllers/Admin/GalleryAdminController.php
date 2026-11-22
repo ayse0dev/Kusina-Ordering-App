@@ -28,11 +28,10 @@ class GalleryAdminController extends Controller
         $skipped = 0;
         foreach ($request->file('photos') as $file) {
             try {
-                // Re-encoded by ImageSanitizer: only real images survive, under a random name.
                 GalleryPhoto::create([
                     'path' => ImageSanitizer::store($file, 'gallery', 1600),
                     'caption' => $request->input('caption'),
-                    'sort_order' => (int) GalleryPhoto::min('sort_order') - 1, // newest first
+                    'sort_order' => (int) GalleryPhoto::min('sort_order') - 1,
                 ]);
                 $saved++;
             } catch (ValidationException) {

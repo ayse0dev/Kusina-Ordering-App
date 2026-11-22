@@ -4,13 +4,13 @@ namespace App\Enums;
 
 enum DeliveryStatus: string
 {
-    case Pending = 'pending';          // waiting for the kitchen / for a courier to be requested
-    case Requested = 'requested';      // courier requested, finding a driver
-    case PickingUp = 'picking_up';     // driver heading to the restaurant
-    case InTransit = 'in_transit';     // food collected, on the way
+    case Pending = 'pending';
+    case Requested = 'requested';
+    case PickingUp = 'picking_up';
+    case InTransit = 'in_transit';
     case Delivered = 'delivered';
     case Cancelled = 'cancelled';
-    case Failed = 'failed';            // courier could not be booked or could not deliver
+    case Failed = 'failed';
 
     public function label(): string
     {
@@ -25,7 +25,6 @@ enum DeliveryStatus: string
         };
     }
 
-    /** Forward progress order; used to ignore out-of-order provider updates. */
     public function rank(): int
     {
         return match ($this) {

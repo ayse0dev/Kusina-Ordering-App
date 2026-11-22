@@ -14,11 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
-/**
- * Everything about getting a food order from the kitchen to the customer's door:
- * quoting (with the delivery-zone check), creating and dispatching the courier job, and
- * folding the courier's status updates back into the order.
- */
 class DeliveryService
 {
     private const SESSION_KEY = 'delivery_quote';
@@ -26,15 +21,6 @@ class DeliveryService
 
     public function __construct(private CourierManager $couriers, private Geocoder $geocoder) {}
 
-    // ------------------------------------------------------------------ quoting
-
-    /**
-     * Price/ETA for an address. Validates the delivery zone; falls back to the flat fee if the
-     * courier cannot quote. The result is remembered in the session so the fee the customer saw
-     * is the fee that is charged (and the browser can never set it).
-     *
-     * @return array{fee: float, eta: int, provider: string, source: string, quote_id: ?string, lat: ?float, lng: ?float, message: ?string}
-     */
     public function quote(string $address): array
     {
         $address = $this->clean($address);
@@ -61,7 +47,6 @@ class DeliveryService
             report($e);
             $message = 'We could not get a live courier price, so the standard delivery fee applies.';
             $manual = $this->couriers->provider('manual')->quote($address, $coords);
-            // Fall back to the restaurant's own driver at the flat fee; dispatch will retry the courier.
             $result = [
                 'fee' => $manual->fee, 'eta' => $manual->etaMinutes, 'provider' => $courier->key(), 'source' => 'flat',
                 'quote_id' => null, 'lat' => $coords['lat'] ?? null, 'lng' => $coords['lng'] ?? null, 'message' => $message,
@@ -78,7 +63,6 @@ class DeliveryService
         $max = config('kusina.delivery.max_km');
         $pickup = $this->geocoder->pickup();
 
-        // If either end can't be located we can't judge, so we don't block the order.
         if (! $max || ! $coords || ! $pickup) {
             return;
         }
@@ -90,7 +74,6 @@ class DeliveryService
         }
     }
 
-    /** Tracking links come from a third party: only accept plain https URLs. */
     private function safeUrl(?string $url): ?string
     {
         return $url && preg_match('#^https://[^\s<>"\']+$#i', $url) ? mb_substr($url, 0, 500) : null;
@@ -101,9 +84,6 @@ class DeliveryService
         return trim(preg_replace('/\s+/', ' ', $address));
     }
 
-    // ------------------------------------------------------------------ order lifecycle
-
-    /** Create the delivery record when a delivery order is placed. */
     public function createFor(Order $order, array $quote): Delivery
     {
         return Delivery::create([
@@ -119,7 +99,6 @@ class DeliveryService
         ]);
     }
 
-    /** Request the courier (idempotent: does nothing if a job is already live or finished). */
     public function dispatch(Order $order): ?Delivery
     {
         return DB::transaction(function () use ($order) {
@@ -134,7 +113,6 @@ class DeliveryService
 
             $courier = $this->couriers->for($delivery->provider);
 
-            // The quoted courier might have lost its credentials since checkout.
             if (! $courier->configured()) {
                 $courier = $this->couriers->provider('manual');
                 $delivery->provider = 'manual';
@@ -167,7 +145,6 @@ class DeliveryService
         $delivery->log($b->status, 'Courier requested ('.$delivery->provider.')');
     }
 
-    /** Dispatch at the configured kitchen stage, for couriers that need booking. */
     public function dispatchIfDue(Order $order, OrderStatus $now): void
     {
         if ($order->order_type->value !== 'delivery' || $now->value !== config('kusina.delivery.dispatch_on', 'preparing')) {
@@ -176,7 +153,6 @@ class DeliveryService
         $this->dispatch($order);
     }
 
-    /** Cancel a live courier job (order cancelled). Never throws. */
     public function cancelFor(Order $order): void
     {
         $delivery = Delivery::where('order_id', $order->id)->first();
@@ -197,7 +173,6 @@ class DeliveryService
         $delivery->log(DeliveryStatus::Cancelled, 'Order cancelled');
     }
 
-    /** Own-driver deliveries have no webhook: mirror the staff-driven order status onto the delivery. */
     public function syncManual(Order $order, OrderStatus $to): void
     {
         $d = Delivery::where('order_id', $order->id)->where('provider', 'manual')->first();
@@ -213,15 +188,11 @@ class DeliveryService
         }
     }
 
-    // ------------------------------------------------------------------ inbound updates
-
-    /** Fold a provider status update into the delivery and the order. Idempotent & order-tolerant. */
     public function applyUpdate(Delivery $delivery, DeliveryUpdate $u): void
     {
         $new = $u->status;
         $cur = $delivery->status;
 
-        // Ignore stale/out-of-order progress and anything after a final state.
         if ($cur->isFinal() || ($new->rank() >= 0 && $cur->rank() > $new->rank() && $cur !== DeliveryStatus::Failed)) {
             return;
         }
@@ -244,7 +215,6 @@ class DeliveryService
         app(OrderService::class)->courierUpdate($delivery->order, $new);
     }
 
-    /** Staff assign their own driver (manual courier). */
     public function assignDriver(Delivery $delivery, string $name, ?string $phone): void
     {
         $delivery->update([

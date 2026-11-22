@@ -13,7 +13,6 @@ return new class extends Migration
             $t->boolean('is_vip')->default(false)->after('is_active');
         });
 
-        // Existing installs: add the 2nd floor (with a VIP lounge). Fresh installs get it from FloorSeeder.
         if (DB::table('floors')->exists() && ! DB::table('floors')->where('name', '2nd Floor')->exists()) {
             $floorId = DB::table('floors')->insertGetId([
                 'name' => '2nd Floor', 'width' => 800, 'height' => 500,
@@ -21,7 +20,6 @@ return new class extends Migration
                 'created_at' => now(), 'updated_at' => now(),
             ]);
 
-            // label, seats, shape, x, y, w, h, vip
             $tables = [
                 ['U1', 4, 'rect', 40, 40, 100, 80, false], ['U2', 4, 'rect', 190, 40, 100, 80, false],
                 ['U3', 4, 'rect', 40, 180, 100, 80, false], ['U4', 4, 'rect', 190, 180, 100, 80, false],

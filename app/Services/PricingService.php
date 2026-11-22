@@ -5,19 +5,8 @@ namespace App\Services;
 use App\Enums\OrderType;
 use App\Models\Voucher;
 
-/**
- * Single source of truth for order totals:
- *   subtotal − discount code + delivery fee → + GST → total → − gift voucher → amount due
- * Discount codes reduce the food subtotal; gift vouchers pay toward the final total.
- */
 class PricingService
 {
-    /**
-     * @param  string[]  $codes  raw codes typed by the customer (max one discount + one gift)
-     * @param  float|null  $deliveryFee  server-side courier quote; null = the standard flat fee
-     * @return array{subtotal: float, discount: float, delivery_fee: float, tax: float, total: float, gift_applied: float,
-     *               amount_due: float, errors: array<string,string>, promo: ?Voucher, gift: ?Voucher}
-     */
     public function quote(float $subtotal, OrderType $type, array $codes = [], bool $lock = false, ?float $deliveryFee = null): array
     {
         $errors = [];

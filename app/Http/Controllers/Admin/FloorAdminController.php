@@ -13,6 +13,7 @@ class FloorAdminController extends Controller
     {
         $floors = Floor::orderBy('sort_order')->with('tables')->get()->map(fn ($f) => [
             'id' => $f->id, 'name' => $f->name, 'width' => $f->width, 'height' => $f->height,
+            'outline' => $f->outline, 'zones' => $f->zones ?? [],
             'tables' => $f->tables->map(fn ($t) => $t->only(['id', 'label', 'seats', 'shape', 'x', 'y', 'w', 'h', 'is_active', 'is_vip']))->values(),
         ]);
 
@@ -27,7 +28,6 @@ class FloorAdminController extends Controller
         return back();
     }
 
-    /** Replace a floor's table layout with what the editor sends. */
     public function sync(Request $request, Floor $floor)
     {
         $data = $request->validate([
@@ -55,7 +55,6 @@ class FloorAdminController extends Controller
                 $keep[] = $table->id;
             }
 
-            // Removed tables: delete if unused, otherwise just deactivate to keep reservation history.
             foreach ($floor->tables()->whereNotIn('id', $keep)->get() as $gone) {
                 $gone->reservations()->exists() ? $gone->update(['is_active' => false]) : $gone->delete();
             }

@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 class Order extends Model
 {
     protected $fillable = [
-        'code', 'customer_name', 'customer_phone', 'order_type', 'table_number', 'delivery_address', 'notes',
+        'code', 'customer_name', 'customer_phone', 'customer_email', 'payment_detail', 'payment_account', 'payment_ref', 'order_type', 'table_number', 'delivery_address', 'notes',
         'status', 'payment_method', 'payment_status', 'paymongo_session_id', 'stripe_session_id',
         'discount', 'tax', 'gift_applied', 'amount_due',
         'subtotal', 'delivery_fee', 'total', 'paid_at',
@@ -56,10 +56,9 @@ class Order extends Model
         return $this->hasMany(OrderStatusLog::class);
     }
 
-    /** Orders staff should see: counter orders, or online orders that have actually been paid. */
     public function scopeVisibleToStaff(Builder $q): Builder
     {
-        return $q->where(fn ($w) => $w->where('payment_method', 'counter')->orWhere('payment_status', 'paid'));
+        return $q->where(fn ($w) => $w->whereIn('payment_method', ['counter', 'cash'])->orWhere('payment_status', 'paid'));
     }
 
     public function isAwaitingPayment(): bool

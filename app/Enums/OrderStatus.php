@@ -28,7 +28,6 @@ enum OrderStatus: string
         return in_array($this, [self::Completed, self::Cancelled], true);
     }
 
-    /** The single allowed forward transition for the given order type. */
     public function next(OrderType $type): ?self
     {
         return match ($this) {
@@ -40,7 +39,6 @@ enum OrderStatus: string
         };
     }
 
-    /** Steps shown on the customer's tracking timeline. */
     public static function timeline(OrderType $type): array
     {
         $steps = [self::Pending, self::Preparing, self::Ready];

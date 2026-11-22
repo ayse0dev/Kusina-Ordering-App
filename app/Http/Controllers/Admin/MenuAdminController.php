@@ -118,7 +118,6 @@ class MenuAdminController extends Controller
 
             $item = $item ? tap($item)->update($attrs) : MenuItem::create($attrs);
 
-            // Replace option groups wholesale (orders keep their own snapshots).
             $item->optionGroups()->delete();
             foreach (array_values($data['groups'] ?? []) as $gi => $g) {
                 $group = $item->optionGroups()->create([

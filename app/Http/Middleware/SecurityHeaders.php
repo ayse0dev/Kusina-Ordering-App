@@ -14,7 +14,6 @@ class SecurityHeaders
 
         $csp = implode('; ', [
             "default-src 'self'",
-            // Alpine.js evaluates expressions, which needs 'unsafe-eval'.
             "script-src 'self' 'unsafe-eval'".(app()->environment('local') ? ' http://localhost:5173' : ''),
             "style-src 'self' 'unsafe-inline' https://fonts.bunny.net",
             "font-src 'self' https://fonts.bunny.net data:",
@@ -23,7 +22,6 @@ class SecurityHeaders
             "object-src 'none'",
             "base-uri 'self'",
             "frame-ancestors 'self'",
-            // Checkout redirects to Stripe after a form POST.
             "form-action 'self' https://checkout.stripe.com",
         ]);
 

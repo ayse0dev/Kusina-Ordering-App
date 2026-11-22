@@ -15,14 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Behind Caddy/Nginx/a load balancer: trust X-Forwarded-* so https URLs, secure cookies and IPs are right.
-        // TRUSTED_PROXIES = '*' or a comma-separated list of proxy IPs. Leave unset when not behind a proxy.
         $proxies = env('TRUSTED_PROXIES');
         $middleware->trustProxies(at: $proxies === '*' ? '*' : ($proxies ? array_map('trim', explode(',', $proxies)) : null));
 
         $middleware->alias(['role' => EnsureRole::class]);
         $middleware->appendToGroup('web', SecurityHeaders::class);
-        // Signature-verified server-to-server callback; no browser session/CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/stripe', 'webhooks/courier/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

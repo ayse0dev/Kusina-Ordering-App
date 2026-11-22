@@ -19,13 +19,11 @@
 }
 
 @layer components {
-    /* Thin gold hairline (replaces any heavy ribbon) */
     .ribbon {
         height: 1px;
         background: linear-gradient(90deg, transparent, #c9a45c 20%, #c9a45c 80%, transparent);
     }
 
-    /* Moody ambient glow, used when no hero photo is supplied */
     .hero-ambient {
         background-color: #0a0a09;
         background-image:
@@ -34,7 +32,6 @@
             radial-gradient(ellipse 60% 40% at 50% 100%, rgb(201 164 92 / 0.12), transparent 70%);
     }
 
-    /* Subtle gold lattice for dark panels (footer, login) */
     .pattern-banig {
         background-color: #0a0a09;
         background-image:
@@ -47,12 +44,10 @@
         background-image: radial-gradient(ellipse 60% 70% at 50% 0%, rgb(201 164 92 / 0.14), transparent 70%);
     }
 
-    /* Section heading: spaced caps, a short gold rule, then a script line */
     .section-title { @apply font-display uppercase tracking-[0.12em] text-navy-900 font-semibold; }
     .section-rule { display: block; width: 3.5rem; height: 2px; @apply bg-sun-500 mt-2; }
     .script { @apply font-script text-sun-600 font-normal tracking-normal normal-case; }
 
-    /* Understated text link: gold caps with underline */
     .link-gold {
         @apply font-display text-xs font-semibold uppercase tracking-[0.2em] text-sun-300 border-b border-sun-400 pb-0.5 transition hover:text-white hover:border-white;
     }
@@ -65,4 +60,82 @@
                transition hover:bg-sun-500 hover:text-navy-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-sun-500 focus-visible:ring-offset-2 disabled:opacity-60;
     }
     .card { @apply border border-cream-line bg-white shadow-card; }
+
+    .text-shine {
+        background-image: linear-gradient(100deg, #b8924a 34%, #fff6d6 50%, #b8924a 66%);
+        background-size: 260% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .sinag-shine {
+        animation: sinag-shine 4.6s ease-in-out infinite;
+        opacity: 0.9;
+    }
+
+    .ring-sweep {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        background: linear-gradient(100deg, transparent, rgb(255 246 214 / 0.55), transparent);
+    }
+
+    .reveal {
+        opacity: 0;
+        transform: translateY(26px);
+        transition: opacity 0.85s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.85s cubic-bezier(0.2, 0.7, 0.2, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+    }
+    .reveal.is-above:not(.is-visible) { transform: translateY(-26px); }
+    .reveal.is-visible { opacity: 1; transform: none; }
+
+    .scroll-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        z-index: 60;
+        transform: scaleX(0);
+        transform-origin: left;
+        background: linear-gradient(90deg, #9a7430, #f3d98a, #c9a45c);
+        box-shadow: 0 0 10px rgb(243 217 138 / 0.7);
+        pointer-events: none;
+    }
+
+    [data-header] > div { transition: height 0.3s ease; }
+    [data-header].is-scrolled { box-shadow: 0 8px 24px -10px rgb(0 0 0 / 0.6); }
+    [data-header].is-scrolled > div { height: 3.5rem; }
+    .reveal .section-rule { transform: scaleX(0); transition: transform 0.9s 0.35s cubic-bezier(0.2, 0.7, 0.2, 1); }
+    .reveal.is-visible .section-rule { transform: scaleX(1); }
+
+    .btn-primary, .link-gold { position: relative; overflow: hidden; }
+    .btn-primary::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.32) 50%, transparent 70%);
+        transform: translateX(-120%);
+        transition: transform 0.75s ease;
+        pointer-events: none;
+    }
+    .btn-primary:hover::after { transform: translateX(120%); }
+    .link-gold { transition: letter-spacing 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+    .link-gold:hover { letter-spacing: 0.26em; }
+}
+
+@keyframes sinag-shine {
+    0%, 55% { transform: translateX(-4px) skewX(-20deg); }
+    100% { transform: translateX(36px) skewX(-20deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

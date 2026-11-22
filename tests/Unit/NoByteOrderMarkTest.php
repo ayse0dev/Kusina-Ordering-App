@@ -6,10 +6,6 @@ use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
-/**
- * A UTF-8 byte-order mark at the start of a PHP/Blade file is sent to the browser before the
- * response body, which silently corrupts JSON responses. Editors/shell tools sometimes add one.
- */
 class NoByteOrderMarkTest extends TestCase
 {
     public function test_no_php_or_blade_file_starts_with_a_bom(): void

@@ -18,7 +18,6 @@ class ReservationService
         $this->cfg = config('kusina.reservations');
     }
 
-    /** Selectable start times for a date, flagged if already in the past. */
     public function slots(CarbonImmutable $date): array
     {
         $open = $date->setTimeFromTimeString($this->cfg['open']);
@@ -33,11 +32,6 @@ class ReservationService
         return $slots;
     }
 
-    /**
-     * Per-table state for a start time & party size: 'available' | 'booked' | 'small'.
-     *
-     * @return array<int, string>
-     */
     public function tableStates(CarbonImmutable $start, int $party): array
     {
         $end = $start->addMinutes($this->cfg['slot_minutes']);
@@ -56,7 +50,6 @@ class ReservationService
         $this->assertBookable($start, $end);
 
         $reservation = DB::transaction(function () use ($data, $start, $end) {
-            // Lock the table row so concurrent bookings for it are serialized.
             $table = DiningTable::where('id', $data['table_id'])->where('is_active', true)->lockForUpdate()->first();
 
             if (! $table) {
@@ -74,15 +67,18 @@ class ReservationService
                 'dining_table_id' => $table->id,
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
+                'customer_email' => $data['customer_email'] ?? null,
                 'party_size' => $data['party_size'],
                 'starts_at' => $start,
                 'ends_at' => $end,
                 'status' => 'confirmed',
                 'notes' => $data['notes'] ?? null,
-            ]);
+            ] + SimulatedPayment::reservationPrice((int) $data['party_size'])
+              + SimulatedPayment::settle($data['payment_method'] ?? 'cash', $data));
         });
 
         ReservationsChanged::dispatch();
+        ReceiptMailer::reservation($reservation);
 
         return $reservation;
     }

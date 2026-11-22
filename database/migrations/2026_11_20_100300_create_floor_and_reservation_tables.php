@@ -22,7 +22,7 @@ return new class extends Migration
             $t->foreignId('floor_id')->constrained()->cascadeOnDelete();
             $t->string('label', 20);
             $t->unsignedTinyInteger('seats')->default(2);
-            $t->string('shape', 10)->default('rect'); // rect | round
+            $t->string('shape', 10)->default('rect');
             $t->unsignedSmallInteger('x')->default(0);
             $t->unsignedSmallInteger('y')->default(0);
             $t->unsignedSmallInteger('w')->default(80);
@@ -40,7 +40,7 @@ return new class extends Migration
             $t->unsignedTinyInteger('party_size');
             $t->dateTime('starts_at');
             $t->dateTime('ends_at');
-            $t->string('status', 20)->default('confirmed'); // confirmed | seated | completed | cancelled | no_show
+            $t->string('status', 20)->default('confirmed');
             $t->string('notes', 300)->nullable();
             $t->timestamps();
             $t->index(['dining_table_id', 'starts_at']);

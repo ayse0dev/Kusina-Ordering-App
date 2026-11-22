@@ -31,7 +31,6 @@
                             <p x-show="o.table" class="text-xs text-stone-600">Table <span x-text="o.table"></span></p>
                             <p x-show="o.address" class="text-xs text-stone-600" x-text="o.address"></p>
 
-                            {{-- Courier (delivery orders) --}}
                             <template x-if="o.delivery">
                                 <div class="mt-2 border border-cream-line bg-cream p-2 text-xs space-y-1">
                                     <p class="flex justify-between gap-2"><span class="font-bold uppercase tracking-wider" x-text="'Courier: ' + o.delivery.provider"></span><span x-text="o.delivery.label"></span></p>

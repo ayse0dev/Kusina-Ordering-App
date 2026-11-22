@@ -33,9 +33,9 @@ return new class extends Migration
             $t->id();
             $t->foreignId('menu_item_id')->constrained()->cascadeOnDelete();
             $t->string('name');
-            $t->string('type', 10)->default('single'); // single | multiple
+            $t->string('type', 10)->default('single');
             $t->boolean('is_required')->default(false);
-            $t->unsignedSmallInteger('max_select')->default(0); // 0 = unlimited (multiple only)
+            $t->unsignedSmallInteger('max_select')->default(0);
             $t->unsignedInteger('sort_order')->default(0);
             $t->timestamps();
         });

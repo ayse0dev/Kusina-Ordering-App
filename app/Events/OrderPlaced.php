@@ -8,7 +8,6 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
-/** A new order is ready for staff (counter order placed, or online order paid). */
 class OrderPlaced implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets;

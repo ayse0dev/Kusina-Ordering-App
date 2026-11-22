@@ -7,7 +7,6 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
-/** Tells open floor maps to re-fetch availability. Carries no data. */
 class ReservationsChanged implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets;

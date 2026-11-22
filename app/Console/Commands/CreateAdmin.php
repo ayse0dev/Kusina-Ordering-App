@@ -34,8 +34,8 @@ class CreateAdmin extends Command
 
         $user = User::firstOrNew(['email' => $this->argument('email')]);
         $user->name = $user->exists ? $user->name : $this->option('name');
-        $user->password = $password;          // hashed by the model cast
-        $user->role = $this->option('role');   // `role` is deliberately not mass-assignable
+        $user->password = $password;
+        $user->role = $this->option('role');
         $user->email_verified_at ??= now();
         $user->save();
 

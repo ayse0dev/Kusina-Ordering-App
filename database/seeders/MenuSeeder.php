@@ -62,11 +62,34 @@ class MenuSeeder extends Seeder
             ],
         ];
 
+        $images = [
+            'Chicken Adobo' => 'menu/chicken-adobo.webp',
+            'Pork Sinigang' => 'menu/pork-sinigang.webp',
+            'Beef Kare-Kare' => 'menu/beef-kare-kare.webp',
+            'Crispy Pata' => 'menu/crispy-pata.webp',
+            'Sizzling Sisig' => 'menu/sizzling-sisig.webp',
+            'Pancit Canton' => 'menu/pancit-canton.webp',
+            'Lumpiang Shanghai' => 'menu/lumpiang-shanghai.webp',
+            'Garlic Rice' => 'menu/garlic-rice.webp',
+            'Halo-Halo' => 'menu/halo-halo.webp',
+            'Leche Flan' => 'menu/leche-flan.webp',
+            'Calamansi Juice' => 'menu/calamansi-juice.webp',
+            'Iced Tea' => 'menu/iced-tea.webp',
+            'Soft Drink' => 'menu/soft-drink.webp',
+        ];
+
         $ci = 0;
         foreach ($menu as $catName => $items) {
             $cat = Category::create(['name' => $catName, 'slug' => str($catName)->slug(), 'sort_order' => $ci++, 'is_active' => true]);
             foreach ($items as $ii => [$name, $desc, $price, $groups]) {
-                $item = $cat->items()->create(['name' => $name, 'description' => $desc, 'base_price' => $price, 'sort_order' => $ii, 'is_available' => true]);
+                $item = $cat->items()->create([
+                    'name' => $name,
+                    'description' => $desc,
+                    'base_price' => $price,
+                    'image_path' => $images[$name] ?? null,
+                    'sort_order' => $ii,
+                    'is_available' => true,
+                ]);
                 foreach ($groups as $gi => $g) {
                     $group = $item->optionGroups()->create([
                         'name' => $g['name'], 'type' => $g['type'], 'is_required' => $g['is_required'],

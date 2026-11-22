@@ -13,13 +13,13 @@ return new class extends Migration
             $t->string('code', 20)->unique();
             $t->string('customer_name');
             $t->string('customer_phone', 30);
-            $t->string('order_type', 20);          // dine_in | pickup | delivery
+            $t->string('order_type', 20);
             $t->string('table_number', 20)->nullable();
             $t->text('delivery_address')->nullable();
             $t->text('notes')->nullable();
             $t->string('status', 30)->default('pending')->index();
-            $t->string('payment_method', 20);      // counter | online
-            $t->string('payment_status', 20)->default('unpaid'); // unpaid | paid | failed
+            $t->string('payment_method', 20);
+            $t->string('payment_status', 20)->default('unpaid');
             $t->string('paymongo_session_id')->nullable()->index();
             $t->decimal('subtotal', 10, 2);
             $t->decimal('delivery_fee', 10, 2)->default(0);

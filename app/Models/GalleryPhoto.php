@@ -11,6 +11,10 @@ class GalleryPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk('public')->url($this->path);
+        if (str_starts_with($this->path, 'http://') || str_starts_with($this->path, 'https://')) {
+            return $this->path;
+        }
+
+        return asset('storage/' . ltrim($this->path, '/'));
     }
 }

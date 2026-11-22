@@ -9,7 +9,6 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 
-/** Status or payment change. Payload carries no personal data. */
 class OrderUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets;

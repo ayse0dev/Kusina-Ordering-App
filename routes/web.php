@@ -20,14 +20,12 @@ use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
-// ---- Public pages ----
 Route::get('/', [PageController::class, 'home'])->name('home');
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 Route::post('/contact', [PageController::class, 'contactStore'])->middleware('throttle:5,10')->name('contact.store');
 Route::get('/menu', [MenuController::class, 'index'])->name('menu');
 
-// ---- Vouchers ----
 Route::prefix('vouchers')->name('vouchers.')->group(function () {
     Route::get('/', [VoucherController::class, 'index'])->name('index');
     Route::post('purchase', [VoucherController::class, 'purchase'])->middleware('throttle:6,1')->name('start');
@@ -36,7 +34,6 @@ Route::prefix('vouchers')->name('vouchers.')->group(function () {
     Route::get('purchase/{token}/status', [VoucherController::class, 'status'])->middleware('throttle:60,1')->name('purchase.status');
 });
 
-// ---- Cart, checkout, tracking ----
 Route::prefix('cart')->name('cart.')->group(function () {
     Route::get('/', [CartController::class, 'show'])->name('show');
     Route::post('/', [CartController::class, 'add'])->middleware('throttle:60,1')->name('add');
@@ -49,21 +46,21 @@ Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->middleware
 Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:10,1')->name('checkout.store');
 
 Route::get('/track/{code}', [TrackingController::class, 'show'])->name('track');
+Route::get('/track/{code}/receipt', [TrackingController::class, 'receipt'])->name('track.receipt');
 Route::get('/track/{code}/status', [TrackingController::class, 'status'])->middleware('throttle:60,1')->name('track.status');
 
 Route::post('/webhooks/stripe', StripeWebhookController::class)->name('webhooks.stripe');
 Route::post('/webhooks/courier/{provider}', CourierWebhookController::class)->name('webhooks.courier');
 
-// ---- Reservations ----
 Route::prefix('reservations')->name('reservations.')->group(function () {
     Route::get('/', [ReservationController::class, 'index'])->name('index');
     Route::get('availability', [ReservationController::class, 'availability'])->middleware('throttle:60,1')->name('availability');
     Route::post('/', [ReservationController::class, 'store'])->middleware('throttle:6,1')->name('store');
     Route::get('{code}', [ReservationController::class, 'show'])->name('show');
+    Route::get('{code}/receipt', [ReservationController::class, 'receipt'])->name('receipt');
     Route::post('{code}/cancel', [ReservationController::class, 'cancel'])->name('cancel');
 });
 
-// ---- Staff / admin ----
 Route::get('/dashboard', fn () => redirect()->route('admin.orders'))->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -94,7 +91,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin,staff'])
     Route::post('messages/{message}/read', [MessageAdminController::class, 'toggleRead'])->name('messages.read');
     Route::delete('messages/{message}', [MessageAdminController::class, 'destroy'])->name('messages.destroy');
 
-    // Admin-only: menu, floor and vouchers
     Route::middleware('role:admin')->group(function () {
         Route::get('menu', [MenuAdminController::class, 'index'])->name('menu');
         Route::post('menu/categories', [MenuAdminController::class, 'categoryStore'])->name('menu.categories.store');

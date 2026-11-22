@@ -7,7 +7,6 @@ use App\Models\Delivery;
 use App\Models\Order;
 use Illuminate\Http\Request;
 
-/** The restaurant's own driver: flat fee, staff assign the driver and move the order along. */
 class ManualCourier implements CourierProvider
 {
     public function key(): string
@@ -27,7 +26,6 @@ class ManualCourier implements CourierProvider
 
     public function book(Order $order, Delivery $delivery): CourierBooking
     {
-        // Nothing to call: staff assign a driver from the order board.
         return new CourierBooking('manual-'.$delivery->id, DeliveryStatus::Requested);
     }
 

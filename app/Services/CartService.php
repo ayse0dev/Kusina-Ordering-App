@@ -6,10 +6,6 @@ use App\Models\MenuItem;
 use App\Models\Option;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Session cart. The session only stores item/option IDs + quantity;
- * every price is recomputed from the database, never trusted from the client.
- */
 class CartService
 {
     private const KEY = 'cart';
@@ -64,7 +60,6 @@ class CartService
         session()->forget(self::KEY);
     }
 
-    /** @return array{lines: array, subtotal: float, count: int} */
     public function summary(): array
     {
         $cart = session(self::KEY, []);
@@ -85,7 +80,6 @@ class CartService
             $item = $items->get($line['item_id']);
             $opts = collect($line['option_ids'])->map(fn ($id) => $options->get($id));
 
-            // Drop lines whose item/options disappeared or became unavailable.
             if (! $item || ! $item->is_available || $opts->contains(fn ($o) => ! $o || ! $o->is_available)) {
                 unset($cart[$key]);
                 $changed = true;
@@ -120,11 +114,6 @@ class CartService
         return ['lines' => $lines, 'subtotal' => round($subtotal, 2), 'count' => $count];
     }
 
-    /**
-     * Ensure option IDs belong to the item and satisfy each group's rules.
-     *
-     * @return int[] sorted, de-duplicated
-     */
     private function validateOptions(MenuItem $item, array $optionIds): array
     {
         $optionIds = collect($optionIds)->map(fn ($v) => (int) $v)->unique()->sort()->values()->all();

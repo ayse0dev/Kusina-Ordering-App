@@ -36,7 +36,7 @@ class ReservationTest extends TestCase
     {
         return $this->postJson('/reservations', $over + [
             'table_id' => $this->table->id, 'date' => $this->date, 'time' => '18:00', 'party_size' => 4,
-            'customer_name' => 'Maria', 'customer_phone' => '09171234567',
+            'customer_name' => 'Maria', 'customer_phone' => '09171234567', 'customer_email' => 'maria@example.com', 'payment_method' => 'cash',
         ]);
     }
 
@@ -45,21 +45,21 @@ class ReservationTest extends TestCase
         $this->book()->assertCreated();
         $r = Reservation::first();
         $this->assertSame('2026-11-21 18:00:00', $r->starts_at->toDateTimeString());
-        $this->assertSame('19:30', $r->ends_at->format('H:i')); // 90-minute slot
+        $this->assertSame('19:30', $r->ends_at->format('H:i'));
     }
 
     public function test_overlapping_booking_is_rejected(): void
     {
         $this->book()->assertCreated();
         $this->book(['time' => '18:30', 'customer_name' => 'Other'])->assertStatus(422)->assertJsonValidationErrors('table_id');
-        $this->book(['time' => '17:00'])->assertStatus(422);   // 17:00-18:30 overlaps 18:00
+        $this->book(['time' => '17:00'])->assertStatus(422);
         $this->assertSame(1, Reservation::count());
     }
 
     public function test_back_to_back_booking_is_allowed(): void
     {
         $this->book()->assertCreated();
-        $this->book(['time' => '19:30'])->assertCreated();     // starts exactly when the first ends
+        $this->book(['time' => '19:30'])->assertCreated();
     }
 
     public function test_cancelled_booking_frees_the_table(): void
@@ -76,12 +76,12 @@ class ReservationTest extends TestCase
 
     public function test_opening_hours_past_and_window_are_enforced(): void
     {
-        $this->book(['time' => '08:30'])->assertStatus(422);                  // before opening
-        $this->book(['time' => '21:00'])->assertStatus(422);                  // would end after 22:00
-        $this->book(['time' => '20:30'])->assertCreated();                    // ends exactly 22:00
-        $this->book(['date' => '2026-11-20', 'time' => '09:00'])->assertStatus(422);   // already past
-        $this->book(['date' => '2027-01-30', 'time' => '12:00'])->assertStatus(422);   // beyond 30 days
-        $this->book(['time' => '18:15'])->assertStatus(422);                  // not on a 30-min step
+        $this->book(['time' => '08:30'])->assertStatus(422);
+        $this->book(['time' => '21:00'])->assertStatus(422);
+        $this->book(['time' => '20:30'])->assertCreated();
+        $this->book(['date' => '2026-11-20', 'time' => '09:00'])->assertStatus(422);
+        $this->book(['date' => '2027-01-30', 'time' => '12:00'])->assertStatus(422);
+        $this->book(['time' => '18:15'])->assertStatus(422);
     }
 
     public function test_availability_marks_booked_and_small_tables(): void

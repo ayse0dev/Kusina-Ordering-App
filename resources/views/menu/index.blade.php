@@ -46,16 +46,23 @@
         </section>
     </template>
 
-    {{-- Item builder modal --}}
     <div x-cloak x-show="item" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @keydown.escape.window="close()">
         <div class="absolute inset-0 bg-navy-950/50" @click="close()"></div>
         <div class="relative bg-white w-full sm:max-w-lg max-h-[92vh] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-lift" x-show="item">
             <template x-if="item">
                 <div class="flex flex-col min-h-0">
+                    <template x-if="item.image">
+                        <div class="relative h-44 sm:h-52 w-full overflow-hidden rounded-t-2xl bg-navy-950 shrink-0">
+                            <img :src="item.image" :alt="item.name" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                            <button @click="close()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white grid place-items-center hover:bg-black/85 transition" aria-label="Close">✕</button>
+                        </div>
+                    </template>
+
                     <div class="px-5 pt-5 pb-3 border-b">
                         <div class="flex justify-between gap-3">
                             <h3 class="font-display text-2xl font-bold text-navy-800" x-text="item.name"></h3>
-                            <button @click="close()" class="text-stone-400 hover:text-stone-700" aria-label="Close">✕</button>
+                            <button x-show="!item.image" @click="close()" class="text-stone-400 hover:text-stone-700" aria-label="Close">✕</button>
                         </div>
                         <p class="text-sm text-stone-500 mt-1" x-text="item.description"></p>
                     </div>

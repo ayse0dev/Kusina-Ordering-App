@@ -4,7 +4,6 @@ namespace App\Support;
 
 class Phone
 {
-    /** Best-effort E.164 (couriers require it). Assumes the configured country for 10-digit local numbers. */
     public static function e164(string $raw, ?string $countryCode = null): string
     {
         $countryCode ??= config('kusina.delivery.phone_country', '+1');

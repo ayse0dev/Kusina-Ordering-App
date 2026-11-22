@@ -13,7 +13,13 @@ class TrackingController extends Controller
         return view('track.show', ['order' => $order, 'delivery' => $this->deliveryInfo($order)]);
     }
 
-    /** Customer-safe delivery details (no internal ids or failure internals). */
+    public function receipt(string $code)
+    {
+        $order = Order::with('items.options')->where('code', $code)->firstOrFail();
+
+        return view('track.receipt', compact('order'));
+    }
+
     private function deliveryInfo(Order $order): ?array
     {
         $d = $order->delivery;

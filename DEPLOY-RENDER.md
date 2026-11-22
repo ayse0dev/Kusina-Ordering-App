@@ -53,6 +53,8 @@ Copy the whole output (it starts with `base64:`).
 
 4. Click **Apply**. The first build takes roughly 5–12 minutes (it installs PHP and JS packages and builds the site).
 
+On its first start the app also loads the starter menu and the two-floor restaurant plan (it never overwrites existing data). Edit both afterwards in the Admin area.
+
 ## 5. Create your admin login
 When the service shows **Live**, open it: Render dashboard → **kusina** → **Shell** tab (the free plan may not include a shell; if not, use the alternative below), then run:
 ```bash

@@ -40,12 +40,38 @@ class VipAndSecondFloorTest extends TestCase
     {
         $this->seed(FloorSeeder::class);
 
-        $this->assertSame(['Indoor', 'Patio', '2nd Floor'], Floor::orderBy('sort_order')->pluck('name')->all());
+        $this->assertSame(['1st Floor', '2nd Floor'], Floor::orderBy('sort_order')->pluck('name')->all());
 
         $second = Floor::where('name', '2nd Floor')->first();
         $vip = $second->tables()->where('is_vip', true)->pluck('label')->sort()->values()->all();
         $this->assertSame(['V1', 'V2', 'V3'], $vip);
-        $this->assertSame(0, DiningTable::whereIn('floor_id', Floor::whereIn('name', ['Indoor', 'Patio'])->pluck('id'))->where('is_vip', true)->count());
+        $this->assertSame(0, DiningTable::where('floor_id', Floor::where('name', '1st Floor')->value('id'))->where('is_vip', true)->count());
+    }
+
+    public function test_floors_follow_the_owners_plan_with_rooms_that_cannot_be_booked(): void
+    {
+        $this->seed(FloorSeeder::class);
+
+        $types = fn (string $name) => collect(Floor::where('name', $name)->first()->zones)->pluck('type')->unique()->sort()->values()->all();
+        $this->assertSame(['bar', 'bathroom', 'door', 'kitchen', 'patio', 'reception', 'stairs', 'waiting'], $types('1st Floor'));
+        $this->assertSame(['office', 'stairs', 'vip'], $types('2nd Floor'));
+        $this->assertGreaterThanOrEqual(3, count(Floor::where('name', '1st Floor')->first()->outline));
+
+        foreach (Floor::with('tables')->get() as $floor) {
+            $t = $floor->tables->values();
+            foreach ($t as $a) {
+                $this->assertLessThanOrEqual($floor->width, $a->x + $a->w, "{$a->label} overflows {$floor->name}");
+                $this->assertLessThanOrEqual($floor->height, $a->y + $a->h, "{$a->label} overflows {$floor->name}");
+            }
+            foreach ($t as $i => $a) {
+                foreach ($t->slice($i + 1) as $b) {
+                    $overlap = $a->x < $b->x + $b->w && $b->x < $a->x + $a->w && $a->y < $b->y + $b->h && $b->y < $a->y + $a->h;
+                    $this->assertFalse($overlap, "{$a->label} overlaps {$b->label} on {$floor->name}");
+                }
+            }
+        }
+
+        $this->get('/reservations')->assertOk()->assertSee('Kitchen')->assertSee('outline', false);
     }
 
     public function test_public_page_exposes_vip_flag_and_copy(): void
@@ -64,24 +90,23 @@ class VipAndSecondFloorTest extends TestCase
 
         $this->postJson('/reservations', [
             'table_id' => $v->id, 'date' => '2026-11-25', 'time' => '19:00', 'party_size' => 8,
-            'customer_name' => 'Maria', 'customer_phone' => '780 555 0100', 'notes' => '40th birthday',
+            'customer_name' => 'Maria', 'customer_phone' => '780 555 0100', 'customer_email' => 'maria@example.com', 'payment_method' => 'cash', 'notes' => '40th birthday',
         ])->assertCreated();
 
         $r = Reservation::first();
         $this->get("/reservations/{$r->code}")->assertOk()->assertSee('VIP');
         $this->actingAs($this->admin('staff'))->get('/admin/reservations?date=2026-11-25')->assertOk()->assertSee('★ VIP', false)->assertSee('40th birthday');
 
-        // Same double-booking protection applies upstairs.
         $this->postJson('/reservations', [
             'table_id' => $v->id, 'date' => '2026-11-25', 'time' => '19:30', 'party_size' => 8,
-            'customer_name' => 'Other', 'customer_phone' => '780 555 0101',
+            'customer_name' => 'Other', 'customer_phone' => '780 555 0101', 'customer_email' => 'o@example.com', 'payment_method' => 'cash',
         ])->assertStatus(422)->assertJsonValidationErrors('table_id');
     }
 
     public function test_availability_covers_second_floor_tables(): void
     {
         $this->seed(FloorSeeder::class);
-        $v = DiningTable::where('label', 'V1')->first();   // 6 seats
+        $v = DiningTable::where('label', 'V1')->first();
 
         $res = $this->getJson('/reservations/availability?date=2026-11-25&time=19:00&party=8')->assertOk();
         $this->assertSame('small', $res->json("tables.{$v->id}"));
@@ -99,7 +124,7 @@ class VipAndSecondFloorTest extends TestCase
         ]])->assertOk();
 
         $this->assertTrue(DiningTable::where('label', 'V9')->first()->is_vip);
-        $this->assertFalse(DiningTable::where('label', 'T1')->first()->is_vip);   // defaults to a normal table
+        $this->assertFalse(DiningTable::where('label', 'T1')->first()->is_vip);
         $this->assertTrue((bool) collect($res->json('tables'))->firstWhere('label', 'V9')['is_vip']);
 
         $this->actingAs($this->admin('staff'))->putJson("/admin/floor/{$floor->id}/tables", ['tables' => []])->assertForbidden();

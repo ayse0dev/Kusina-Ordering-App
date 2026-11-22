@@ -42,7 +42,6 @@ class VoucherAdminController extends Controller
         return back()->with('status', 'Discount code created.');
     }
 
-    /** Issue a gift voucher directly (e.g. a goodwill gesture or an in-store sale). */
     public function storeGift(Request $request)
     {
         $data = $request->validate([

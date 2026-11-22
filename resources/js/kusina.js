@@ -1,4 +1,3 @@
-// Alpine components for the Kusina ordering app.
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
@@ -7,7 +6,6 @@ export const money = (n) =>
 
 window.money = money;
 
-/** JSON fetch helper that throws the parsed body on non-2xx. */
 async function api(method, url, body) {
     const res = await fetch(url, {
         method,
@@ -20,7 +18,7 @@ async function api(method, url, body) {
         body: body === undefined ? undefined : JSON.stringify(body),
     });
     let data = {};
-    try { data = await res.json(); } catch (_) { /* empty body */ }
+    try { data = await res.json(); } catch (_) { }
     if (!res.ok) throw data;
     return data;
 }
@@ -29,7 +27,6 @@ const firstError = (e) =>
     (e && e.errors ? Object.values(e.errors).flat()[0] : null) || (e && e.message) || 'Something went wrong.';
 
 export default function registerKusina(Alpine) {
-    // ---------- Cart (shared store) ----------
     Alpine.store('cart', {
         open: false,
         lines: [],
@@ -46,7 +43,6 @@ export default function registerKusina(Alpine) {
         async remove(key) { try { this.apply(await api('DELETE', '/cart/' + key)); } catch (_) {} },
     });
 
-    // ---------- Menu + dynamic item builder ----------
     Alpine.data('menuPage', (categories) => ({
         categories,
         active: categories[0]?.id ?? null,
@@ -129,7 +125,6 @@ export default function registerKusina(Alpine) {
         },
     }));
 
-    // ---------- Order tracking (customer) ----------
     Alpine.data('trackPage', ({ code, status, payment, steps, delivery }) => ({
         code, status, payment, steps, delivery,
         get idx() { return this.steps.findIndex((s) => s.key === this.status); },
@@ -137,9 +132,8 @@ export default function registerKusina(Alpine) {
             window.Echo?.channel('orders.' + this.code).listen('.order.updated', (e) => {
                 this.status = e.status;
                 this.payment = e.payment_status;
-                this.poll(); // courier details aren't in the broadcast; fetch them
+                this.poll();
             });
-            // Fallback if the socket is unavailable.
             setInterval(() => this.poll(), 20000);
         },
         async poll() {
@@ -152,9 +146,7 @@ export default function registerKusina(Alpine) {
         },
     }));
 
-    // ---------- Reservations (customer booking: 3D building + 2D plan) ----------
     Alpine.data('reservationPage', ({ floors, config }) => {
-        // The three.js scene lives outside Alpine's reactive proxy (proxying GPU objects is slow and breaks them).
         let scene = null;
         let hintTimer = null;
 
@@ -167,12 +159,14 @@ export default function registerKusina(Alpine) {
             slots: [],
             states: {},
             selected: null,
-            name: '', phone: '', notes: '',
+            name: config.me?.name ?? '', phone: '', email: config.me?.email ?? '', notes: '',
+            payMethod: 'cash',
+            me: !!config.me,
+            remembered: false,
             error: '', busy: false,
 
-            // 3D view state
-            view: '3d',          // '3d' | '2d'
-            focus: null,         // null = whole building, otherwise a floor id
+            view: '3d',
+            focus: null,
             loading3d: true,
             fail3d: false,
             autoRotate: true,
@@ -183,6 +177,16 @@ export default function registerKusina(Alpine) {
 
             get floor() { return this.floors.find((f) => f.id === this.floorId); },
             get selectedTable() { return this.tableById(this.selected); },
+            get price() {
+                const sub = Math.round(this.config.fee * this.party * 100) / 100;
+                const tax = Math.round(sub * this.config.taxRate * 100) / 100;
+                return { sub, tax, total: Math.round((sub + tax) * 100) / 100 };
+            },
+            get detailsReady() {
+                return !!(this.selectedTable && this.time && this.name.trim() && this.phone.trim().length >= 7
+                    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim()));
+            },
+            money(n) { return '$' + Number(n).toFixed(2); },
             get vipFloor() { return this.floors.find((f) => f.tables.some((t) => t.is_vip)) ?? null; },
             get endTime() {
                 if (!this.time) return '';
@@ -201,7 +205,17 @@ export default function registerKusina(Alpine) {
             floorOf(id) { return this.floors.find((f) => f.tables.some((t) => t.id === id)); },
 
             init() {
-                // Shareable links: /reservations?date=2026-12-01&time=19:00&party=4
+                if (!this.me) {
+                    try {
+                        const saved = JSON.parse(localStorage.getItem('kusina.booker') || 'null');
+                        if (saved && (saved.name || saved.phone || saved.email)) {
+                            this.email = String(saved.email || '').slice(0, 150);
+                            this.name = String(saved.name || '').slice(0, 100);
+                            this.phone = String(saved.phone || '').slice(0, 20);
+                            this.remembered = true;
+                        }
+                    } catch (_) { }
+                }
                 const q = new URLSearchParams(window.location.search);
                 const qDate = q.get('date') || '';
                 if (/^\d{4}-\d{2}-\d{2}$/.test(qDate) && qDate >= config.min && qDate <= config.max) this.date = qDate;
@@ -242,7 +256,6 @@ export default function registerKusina(Alpine) {
                     this.autoRotate = scene.autoRotate;
                     this.sync3d();
                     scene.setSelected(this.selected);
-                    // Deep link to one level: /reservations?level=<floor id>
                     const lv = parseInt(new URLSearchParams(window.location.search).get('level'), 10);
                     if (this.floors.some((f) => f.id === lv)) this.setFocus(lv);
                 } catch (e) {
@@ -263,22 +276,26 @@ export default function registerKusina(Alpine) {
                     const d = await api('GET', '/reservations/availability?' + p);
                     this.slots = d.slots;
                     this.states = d.tables;
-                    if (this.selected && this.states[this.selected] !== 'available') this.selected = null;
+                    if (this.time && this.selected && this.states[this.selected] !== 'available') {
+                        const t = this.selectedTable;
+                        this.flash(t ? `Table ${t.label} isn't free at that time. Please pick another table.` : '');
+                        this.selected = null;
+                    }
                 } catch (_) {}
             },
 
             stateOf(t) { return this.time ? (this.states[t.id] || 'booked') : 'idle'; },
-            pick(t) { if (this.stateOf(t) === 'available') this.selected = t.id; },
+            pick(t) { if (['available', 'idle'].includes(this.stateOf(t))) this.selected = t.id; },
 
-            // ----- 3D interactions -----
             pickId(id) {
                 const t = this.tableById(id);
                 if (!t) return;
                 const st = this.stateOf(t);
-                if (st === 'available') {
+                if (st === 'available' || st === 'idle') {
                     this.selected = id;
                     this.floorId = this.floorOf(id)?.id ?? this.floorId;
-                    this.hint = '';
+                    this.hint = st === 'idle' ? `Table ${t.label} selected. Now choose a time.` : '';
+                    if (st === 'idle') { clearTimeout(hintTimer); hintTimer = setTimeout(() => { this.hint = ''; }, 3500); }
                 } else {
                     this.flash(st === 'idle' ? 'Choose a time first to see which tables are free.'
                         : st === 'booked' ? `Table ${t.label} is already booked at that time.`
@@ -319,10 +336,16 @@ export default function registerKusina(Alpine) {
                 this.error = '';
                 this.busy = true;
                 try {
+                    const pay = Object.fromEntries(['payment_method', 'payment_detail', 'account_number', 'card_holder', 'card_number', 'card_expiry']
+                        .map((k) => [k, this.$refs.details.elements[k]?.value ?? null]));
+                    const checked = this.$refs.details.querySelector('input[name=payment_method]:checked');
+                    pay.payment_method = checked ? checked.value : this.payMethod;
                     const d = await api('POST', '/reservations', {
                         table_id: this.selected, date: this.date, time: this.time, party_size: this.party,
-                        customer_name: this.name, customer_phone: this.phone, notes: this.notes || null,
+                        customer_name: this.name, customer_phone: this.phone, customer_email: this.email, notes: this.notes || null,
+                        ...pay,
                     });
+                    try { localStorage.setItem('kusina.booker', JSON.stringify({ name: this.name, phone: this.phone, email: this.email })); } catch (_) { }
                     window.location = d.redirect;
                 } catch (e) {
                     this.error = firstError(e);
@@ -334,7 +357,6 @@ export default function registerKusina(Alpine) {
         };
     });
 
-    // ---------- Staff: live order board ----------
     Alpine.data('orderBoard', () => ({
         orders: [],
         sound: false,
@@ -348,7 +370,7 @@ export default function registerKusina(Alpine) {
 
         init() {
             this.load();
-            setInterval(() => this.load(), 15000); // fallback if the socket drops
+            setInterval(() => this.load(), 15000);
             const ch = window.Echo?.private('staff');
             ch?.listen('.order.placed', () => { this.beep(); this.load(); });
             ch?.listen('.order.updated', () => this.load());
@@ -365,7 +387,6 @@ export default function registerKusina(Alpine) {
             this.load();
         },
 
-        // Own-driver deliveries: record who is delivering.
         async assignDriver(o) {
             const name = (window.prompt('Driver name') || '').trim();
             if (!name) return;
@@ -389,12 +410,10 @@ export default function registerKusina(Alpine) {
         },
     }));
 
-    // ---------- Staff: reservations auto-refresh ----------
     Alpine.data('reservationBoard', () => ({
         init() { window.Echo?.private('staff'); window.Echo?.channel('reservations').listen('.reservations.changed', () => window.location.reload()); },
     }));
 
-    // ---------- Admin: drag & drop floor editor ----------
     Alpine.data('floorEditor', ({ floors }) => ({
         floors,
         floorId: floors[0]?.id ?? null,
@@ -422,7 +441,6 @@ export default function registerKusina(Alpine) {
             this.sel = null;
         },
 
-        // Convert a pointer position to floor-plan coordinates.
         point(e) {
             const r = this.$refs.canvas.getBoundingClientRect();
             return {
@@ -464,7 +482,6 @@ export default function registerKusina(Alpine) {
         },
     }));
 
-    // ---------- Admin: option groups editor on the item form ----------
     Alpine.data('itemForm', ({ groups }) => ({
         groups,
         addGroup() { this.groups.push({ name: '', type: 'single', is_required: false, max_select: 0, options: [{ name: '', price_delta: 0, is_available: true }] }); },
@@ -473,7 +490,6 @@ export default function registerKusina(Alpine) {
         removeOption(g, i) { g.options.splice(i, 1); },
     }));
 
-    // ---------- Checkout: live totals with voucher / discount codes ----------
     Alpine.data('checkoutPage', ({ type, pay, quote, address }) => ({
         type, pay, quote, address,
         codeInput: '',
@@ -482,8 +498,13 @@ export default function registerKusina(Alpine) {
         busy: false,
 
         init() {
-            this.$watch('type', () => this.refresh());
-            // Live courier price once the customer has typed an address (the input is debounced in the view).
+            const fixPay = () => {
+                const dine = this.type === 'dine_in';
+                if (dine && !['cash', 'ewallet', 'card'].includes(this.pay)) this.pay = 'cash';
+                if (!dine && !['counter', 'online'].includes(this.pay)) this.pay = 'counter';
+            };
+            fixPay();
+            this.$watch('type', () => { fixPay(); this.refresh(); });
             this.$watch('address', () => { if (this.type === 'delivery') this.refresh(); });
             if (this.type === 'delivery' && this.address) this.refresh();
         },
@@ -494,7 +515,6 @@ export default function registerKusina(Alpine) {
         async refresh() {
             try {
                 this.quote = await api('POST', '/checkout/quote', this.body());
-                // Drop any code the server rejected, and tell the customer why.
                 const bad = Object.keys(this.quote.errors || {});
                 if (bad.length) {
                     this.codeMsg = Object.values(this.quote.errors)[0];
@@ -517,7 +537,6 @@ export default function registerKusina(Alpine) {
         async removeCode(c) { this.codes = this.codes.filter((x) => x !== c); this.codeMsg = ''; await this.refresh(); },
     }));
 
-    // ---------- Vouchers ----------
     Alpine.data('giftForm', ({ presets, min, max, amount }) => ({ presets, min, max, amount }));
 
     Alpine.data('voucherCheck', () => ({
@@ -545,7 +564,6 @@ export default function registerKusina(Alpine) {
         },
     }));
 
-    // ---------- Home: feature slider ----------
     Alpine.data('featureSlider', ({ count }) => ({
         i: 0,
         count,
@@ -553,14 +571,13 @@ export default function registerKusina(Alpine) {
         startX: null,
 
         init() {
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // no auto-advance
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
             setInterval(() => { if (!this.paused) this.next(); }, 7000);
         },
         go(n) { this.i = (n + this.count) % this.count; },
         next() { this.go(this.i + 1); },
         prev() { this.go(this.i - 1); },
 
-        // Swipe on touch screens
         touchStart(e) { this.startX = e.touches[0].clientX; },
         touchEnd(e) {
             if (this.startX === null) return;

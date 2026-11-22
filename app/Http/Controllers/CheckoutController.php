@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OrderType;
 use App\Services\CartService;
 use App\Services\DeliveryService;
+use App\Services\SimulatedPayment;
 use App\Services\OrderService;
 use App\Services\PricingService;
 use Illuminate\Http\Request;
@@ -29,7 +30,6 @@ class CheckoutController extends Controller
         ]);
     }
 
-    /** Live price breakdown for the checkout page (informational; the server recomputes on submit). */
     public function quote(Request $request, CartService $cart, PricingService $pricing, DeliveryService $delivery)
     {
         $data = $request->validate([
@@ -43,7 +43,6 @@ class CheckoutController extends Controller
         $info = null;
         $addressError = null;
 
-        // Live courier price once there is a plausible address.
         if ($type === OrderType::Delivery && mb_strlen(trim($data['delivery_address'] ?? '')) >= 8) {
             try {
                 $info = $delivery->quote($data['delivery_address']);
@@ -81,12 +80,16 @@ class CheckoutController extends Controller
             'table_number' => ['nullable', 'required_if:order_type,dine_in', 'string', 'max:20'],
             'delivery_address' => ['nullable', 'required_if:order_type,delivery', 'string', 'max:300'],
             'notes' => ['nullable', 'string', 'max:300'],
-            'payment_method' => ['required', Rule::in(['counter', 'online'])],
+            'customer_email' => ['nullable', 'required_if:order_type,dine_in', 'email:rfc', 'max:150'],
+            'payment_method' => ['required', Rule::in($request->input('order_type') === 'dine_in' ? array_keys(config('kusina.payment_methods')) : ['counter', 'online'])],
             'codes' => ['array', 'max:4'],
             'codes.*' => ['string', 'max:40'],
         ]);
 
-        // For delivery, the fee/ETA come from the server-side courier quote, never from the browser.
+        if ($request->input('order_type') === 'dine_in') {
+            $data += $request->validate(array_diff_key(SimulatedPayment::rules($request->input('payment_method')), ['payment_method' => 1]));
+        }
+
         if ($data['order_type'] === OrderType::Delivery->value) {
             $data['delivery'] = app(DeliveryService::class)->quote($data['delivery_address']);
         }

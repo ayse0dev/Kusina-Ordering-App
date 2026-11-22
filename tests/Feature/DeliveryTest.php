@@ -24,14 +24,13 @@ class DeliveryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Http::preventStrayRequests();   // every outbound call in these tests must be explicitly faked
+        Http::preventStrayRequests();
         Cache::flush();
 
         $item = Category::create(['name' => 'M', 'slug' => 'm'])->items()->create(['name' => 'Dish', 'base_price' => 100, 'is_available' => true]);
         $this->postJson('/cart', ['item_id' => $item->id, 'option_ids' => [], 'qty' => 1])->assertOk();
     }
 
-    // ---------------------------------------------------------------- helpers
     private function useUber(): void
     {
         config([
@@ -89,7 +88,6 @@ class DeliveryTest extends TestCase
         return $this->call('POST', "/webhooks/courier/{$provider}", [], [], [], $server, $raw);
     }
 
-    // ---------------------------------------------------------------- manual (own driver)
     public function test_manual_delivery_uses_flat_fee_and_follows_staff_status(): void
     {
         $this->checkout()->assertRedirect();
@@ -100,15 +98,15 @@ class DeliveryTest extends TestCase
         $this->assertSame('flat', $d->fee_source);
         $this->assertSame(DeliveryStatus::Pending, $d->status);
         $this->assertEquals(5, $order->delivery_fee);
-        $this->assertEquals(110.25, $order->total);                      // (100 + 5) + 5% GST
+        $this->assertEquals(110.25, $order->total);
 
-        $this->advance($order, 2);                                       // preparing → ready: no courier API is ever called
-        $this->assertSame(DeliveryStatus::Requested, $d->fresh()->status);   // "finding a driver": staff assign one
+        $this->advance($order, 2);
+        $this->assertSame(DeliveryStatus::Requested, $d->fresh()->status);
         Http::assertNothingSent();
 
-        $this->advance($order);                                          // → out for delivery
+        $this->advance($order);
         $this->assertSame(DeliveryStatus::InTransit, $d->fresh()->status);
-        $this->advance($order);                                          // → completed
+        $this->advance($order);
         $this->assertSame(DeliveryStatus::Delivered, $d->fresh()->status);
     }
 
@@ -125,11 +123,9 @@ class DeliveryTest extends TestCase
         $this->assertSame('Pedro', $d->courier_name);
         $this->assertSame(DeliveryStatus::PickingUp, $d->status);
 
-        // Customers see the driver on the tracking page data
         $this->getJson("/track/{$order->code}/status")->assertJsonPath('delivery.courier', 'Pedro');
     }
 
-    // ---------------------------------------------------------------- Uber Direct: quote, fee integrity, zone
     public function test_live_courier_quote_sets_the_delivery_fee_server_side(): void
     {
         $this->useUber();
@@ -141,11 +137,10 @@ class DeliveryTest extends TestCase
             ->assertJsonPath('delivery.eta', 35)
             ->assertJsonPath('delivery.source', 'courier');
 
-        // The customer cannot lower the fee by posting their own value.
         $this->checkout(['delivery_fee' => 0, 'delivery' => ['fee' => 0]])->assertRedirect();
         $order = Order::first();
         $this->assertEquals(7.5, $order->delivery_fee);
-        $this->assertEquals(112.88, $order->total);                       // (100 + 7.5) * 1.05 = 112.875
+        $this->assertEquals(112.88, $order->total);
         $this->assertSame('courier', $order->delivery->fee_source);
         $this->assertSame('dqt_1', $order->delivery->quote_id);
     }
@@ -158,7 +153,7 @@ class DeliveryTest extends TestCase
         foreach (range(1, 3) as $_) {
             $this->postJson('/checkout/quote', ['order_type' => 'delivery', 'delivery_address' => self::ADDRESS])->assertOk();
         }
-        Http::assertSentCount(2);   // 1 auth + 1 quote, not 3 quotes
+        Http::assertSentCount(2);
     }
 
     public function test_courier_failure_falls_back_to_the_flat_fee(): void
@@ -175,7 +170,7 @@ class DeliveryTest extends TestCase
             ->assertJsonPath('delivery.source', 'flat')
             ->assertJsonStructure(['delivery' => ['message']]);
 
-        $this->checkout()->assertRedirect();                              // ordering still works
+        $this->checkout()->assertRedirect();
         $this->assertEquals(5, Order::first()->delivery_fee);
     }
 
@@ -194,7 +189,7 @@ class DeliveryTest extends TestCase
             'kusina.delivery.geocoder.driver' => 'nominatim', 'kusina.delivery.max_km' => 10,
             'kusina.delivery.pickup.lat' => 53.58, 'kusina.delivery.pickup.lng' => -116.43,
         ]);
-        Http::fake(['nominatim.openstreetmap.org/*' => Http::response([['lat' => '53.5461', 'lon' => '-113.4938']])]);   // Edmonton, about 200 km away
+        Http::fake(['nominatim.openstreetmap.org/*' => Http::response([['lat' => '53.5461', 'lon' => '-113.4938']])]);
 
         $this->postJson('/checkout/quote', ['order_type' => 'delivery', 'delivery_address' => self::ADDRESS])
             ->assertOk()->assertJsonPath('delivery.error', fn ($m) => str_contains($m, 'outside our delivery area'));
@@ -215,7 +210,6 @@ class DeliveryTest extends TestCase
         $this->assertEqualsWithDelta(53.59, (float) Order::first()->delivery->dropoff_lat, 0.001);
     }
 
-    // ---------------------------------------------------------------- Uber Direct: booking + webhooks
     public function test_courier_is_requested_when_the_kitchen_starts_and_cancelled_with_the_order(): void
     {
         $this->useUber();
@@ -224,7 +218,7 @@ class DeliveryTest extends TestCase
         $order = Order::first();
 
         $this->assertSame(DeliveryStatus::Pending, $order->delivery->status);
-        $this->advance($order);                                           // pending → preparing: dispatch_on = preparing
+        $this->advance($order);
 
         $d = $order->delivery->fresh();
         $this->assertSame(DeliveryStatus::Requested, $d->status);
@@ -234,7 +228,7 @@ class DeliveryTest extends TestCase
         Http::assertSent(function (HttpRequest $r) use ($order) {
             return $r->url() === 'https://api.uber.com/v1/customers/cust_1/deliveries'
                 && $r['external_id'] === $order->code
-                && $r['dropoff_phone_number'] === '+17805550123'          // E.164
+                && $r['dropoff_phone_number'] === '+17805550123'
                 && $r['dropoff_address'] === self::ADDRESS
                 && $r['manifest_items'][0]['name'] === 'Dish';
         });
@@ -263,7 +257,7 @@ class DeliveryTest extends TestCase
         $this->assertSame(DeliveryStatus::Failed, $d->status);
         $this->assertStringContainsString('no couriers', $d->failure_reason);
 
-        $this->actingAs($this->staff())->postJson("/admin/orders/{$order->id}/courier/dispatch")->assertOk();   // retry
+        $this->actingAs($this->staff())->postJson("/admin/orders/{$order->id}/courier/dispatch")->assertOk();
         $this->assertSame(DeliveryStatus::Requested, $d->fresh()->status);
         $this->assertSame('del_2', $d->fresh()->provider_delivery_id);
         $this->assertNull($d->fresh()->failure_reason);
@@ -283,9 +277,8 @@ class DeliveryTest extends TestCase
         $this->assertSame([DeliveryStatus::PickingUp, 'Alex'], [$d->status, $d->courier_name]);
 
         $this->signedWebhook('uber', ['kind' => 'event.delivery_status', 'delivery_id' => 'del_1', 'status' => 'pickup_complete'])->assertOk();
-        $this->assertSame('out_for_delivery', $order->fresh()->status->value);          // food collected
+        $this->assertSame('out_for_delivery', $order->fresh()->status->value);
 
-        // A late "pickup" event must not move things backwards.
         $this->signedWebhook('uber', ['kind' => 'event.delivery_status', 'delivery_id' => 'del_1', 'status' => 'pickup'])->assertOk();
         $this->assertSame(DeliveryStatus::InTransit, $d->fresh()->status);
 
@@ -294,7 +287,6 @@ class DeliveryTest extends TestCase
         $this->assertSame('completed', $order->fresh()->status->value);
         $this->assertNotNull($d->fresh()->delivered_at);
 
-        // Nothing changes after a final state.
         $this->signedWebhook('uber', ['kind' => 'event.delivery_status', 'delivery_id' => 'del_1', 'status' => 'canceled'])->assertOk();
         $this->assertSame(DeliveryStatus::Delivered, $d->fresh()->status);
     }
@@ -309,12 +301,11 @@ class DeliveryTest extends TestCase
         $body = ['kind' => 'event.delivery_status', 'delivery_id' => 'del_1', 'status' => 'delivered'];
 
         $this->signedWebhook('uber', $body, 'wrong_key')->assertForbidden();
-        $this->postJson('/webhooks/courier/uber', $body)->assertForbidden();             // no signature at all
-        $this->postJson('/webhooks/courier/manual', $body)->assertNotFound();            // manual has no webhook
+        $this->postJson('/webhooks/courier/uber', $body)->assertForbidden();
+        $this->postJson('/webhooks/courier/manual', $body)->assertNotFound();
         $this->postJson('/webhooks/courier/doordash', $body)->assertNotFound();
         $this->assertSame(DeliveryStatus::Requested, $order->delivery->fresh()->status);
 
-        // A verified event for a delivery we don't know is acknowledged and ignored.
         $this->signedWebhook('uber', ['delivery_id' => 'unknown', 'status' => 'delivered'])->assertOk();
     }
 
@@ -332,10 +323,9 @@ class DeliveryTest extends TestCase
         $this->assertSame('https://ok.example/t/1', $order->delivery->fresh()->tracking_url);
     }
 
-    // ---------------------------------------------------------------- configuration safety
     public function test_unconfigured_courier_falls_back_to_manual(): void
     {
-        config(['kusina.delivery.provider' => 'uber']);   // selected, but no credentials
+        config(['kusina.delivery.provider' => 'uber']);
         $this->assertSame('uber', app(CourierManager::class)->configuredKey());
         $this->assertSame('manual', app(CourierManager::class)->active()->key());
 
@@ -349,7 +339,6 @@ class DeliveryTest extends TestCase
         $this->assertSame('manual', app(CourierManager::class)->configuredKey());
     }
 
-    // ---------------------------------------------------------------- GrabExpress
     private function useGrab(): void
     {
         config([
@@ -372,7 +361,7 @@ class DeliveryTest extends TestCase
         ]);
 
         $this->postJson('/checkout/quote', ['order_type' => 'delivery', 'delivery_address' => self::ADDRESS])
-            ->assertJsonPath('delivery_fee', 5)->assertJsonPath('delivery.source', 'flat');   // PHP 120 is never charged as CAD 120
+            ->assertJsonPath('delivery_fee', 5)->assertJsonPath('delivery.source', 'flat');
     }
 
     public function test_grab_quote_booking_and_token_secured_webhook(): void
@@ -398,14 +387,13 @@ class DeliveryTest extends TestCase
             && $r['destination']['coordinates']['latitude'] === 53.59);
 
         $body = ['deliveryID' => 'IN-1', 'status' => 'IN_DELIVERY', 'driver' => ['name' => 'Rey', 'phone' => '+639170000000']];
-        $this->postJson('/webhooks/courier/grab', $body)->assertForbidden();                       // no token
+        $this->postJson('/webhooks/courier/grab', $body)->assertForbidden();
         $this->postJson('/webhooks/courier/grab?token=nope', $body)->assertForbidden();
         $this->postJson('/webhooks/courier/grab?token=hook_secret', $body)->assertOk();
         $this->assertSame([DeliveryStatus::InTransit, 'Rey'], [$d->fresh()->status, $d->fresh()->courier_name]);
         $this->assertSame('out_for_delivery', $order->fresh()->status->value);
     }
 
-    // ---------------------------------------------------------------- misc
     public function test_phone_numbers_are_normalised_for_couriers(): void
     {
         $this->assertSame('+17805550123', Phone::e164('(780) 555-0123'));
@@ -444,7 +432,7 @@ class DeliveryTest extends TestCase
 
         $this->signedWebhook('uber', ['delivery_id' => 'del_1', 'status' => 'delivered']);
         $done = $this->getJson("/track/{$order->code}/status")->json('delivery');
-        $this->assertNull($done['phone']);      // courier phone and live link disappear once delivered
+        $this->assertNull($done['phone']);
         $this->assertNull($done['tracking']);
     }
 }

@@ -12,13 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-/**
- * GrabExpress (Southeast Asia only: not available in Canada). Written against Grab's published
- * GrabExpress partner API: OAuth client-credentials, delivery quotes, deliveries, status webhooks.
- * NOT verified against a live partner account: test in Grab's sandbox before going live.
- *
- * Grab needs coordinates for both ends, so the delivery address must geocode.
- */
 class GrabExpressCourier implements CourierProvider
 {
     private const AUTH = 'https://partner-api.grab.com/grabid/v1/oauth2/token';
@@ -114,7 +107,6 @@ class GrabExpressCourier implements CourierProvider
         $q = $r->json('quotes.0');
         $code = strtoupper((string) ($q['currency']['code'] ?? ''));
         if ($code !== strtoupper(config('kusina.currency'))) {
-            // GrabExpress prices in local Southeast Asian currencies: refuse rather than mischarge.
             throw new CourierException("Grab quoted in {$code}, not ".config('kusina.currency').'.');
         }
 
@@ -175,7 +167,6 @@ class GrabExpressCourier implements CourierProvider
         }
     }
 
-    /** Grab webhooks are authenticated with a secret token we register in the callback URL/header. */
     public function verifyWebhook(Request $request): bool
     {
         $expected = $this->cfg('webhook_token');
@@ -210,7 +201,7 @@ class GrabExpressCourier implements CourierProvider
             'COMPLETED' => DeliveryStatus::Delivered,
             'CANCELED', 'CANCELLED' => DeliveryStatus::Cancelled,
             'FAILED', 'IN_RETURN', 'RETURNED' => DeliveryStatus::Failed,
-            default => DeliveryStatus::Requested,   // QUEUING, ALLOCATING
+            default => DeliveryStatus::Requested,
         };
     }
 }

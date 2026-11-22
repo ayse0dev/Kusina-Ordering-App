@@ -28,7 +28,6 @@ class Voucher extends Model
         return Str::upper(preg_replace('/[^A-Za-z0-9\-]/', '', trim($code)));
     }
 
-    /** Random, unambiguous gift code like GIFT-7K2M-9XQ4. */
     public static function generateGiftCode(): string
     {
         $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

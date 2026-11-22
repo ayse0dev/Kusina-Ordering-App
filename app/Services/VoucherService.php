@@ -15,7 +15,6 @@ class VoucherService
 {
     public function __construct(private StripeService $stripe) {}
 
-    /** Record redemptions for an order and consume uses/balance. Call inside the order transaction. */
     public function redeem(Order $order, array $quote): void
     {
         if ($quote['promo']) {
@@ -29,7 +28,6 @@ class VoucherService
         }
     }
 
-    /** Undo redemptions (order cancelled / checkout expired). Idempotent. */
     public function restore(Order $order): void
     {
         DB::transaction(function () use ($order) {
@@ -45,12 +43,6 @@ class VoucherService
         });
     }
 
-    /**
-     * Begin a gift voucher purchase: creates a pending voucher and a Stripe checkout.
-     * The voucher only becomes usable once the signed webhook confirms payment.
-     *
-     * @return array{0: Voucher, 1: string} voucher and checkout URL
-     */
     public function startPurchase(array $data): array
     {
         $voucher = Voucher::create([
@@ -85,7 +77,6 @@ class VoucherService
         return [$voucher, $url];
     }
 
-    /** Called from the verified webhook. Idempotent. */
     public function activatePurchase(Voucher $voucher): void
     {
         if ($voucher->status !== 'pending') {
@@ -98,7 +89,7 @@ class VoucherService
             try {
                 Mail::raw($this->emailBody($voucher), fn ($m) => $m->to($to)->subject('Your Kusi Nna gift voucher'));
             } catch (Throwable $e) {
-                report($e); // never fail the webhook over email
+                report($e);
             }
         }
     }

@@ -35,7 +35,7 @@ class GalleryTest extends TestCase
 
         $this->get('/')->assertOk()
             ->assertSee('alt="Crispy pata"', false)
-            ->assertDontSee('Chicken Adobo')      // no menu cards on the home page
+            ->assertDontSee('Chicken Adobo')
             ->assertDontSee('$16.50');
     }
 
@@ -58,7 +58,7 @@ class GalleryTest extends TestCase
         $photo = GalleryPhoto::first();
         $this->assertMatchesRegularExpression('#^gallery/[A-Za-z0-9]{40}\.webp$#', $photo->path);
         [$w] = getimagesizefromstring(Storage::disk('public')->get($photo->path));
-        $this->assertLessThanOrEqual(1600, $w);   // large photos are downsized
+        $this->assertLessThanOrEqual(1600, $w);
 
         $this->actingAs($admin)->delete("/admin/gallery/{$photo->id}")->assertRedirect();
         Storage::disk('public')->assertMissing($photo->path);

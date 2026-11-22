@@ -29,7 +29,6 @@ class DeliveryAdminController extends Controller
         ]);
     }
 
-    /** Request (or retry) the courier for an order. */
     public function dispatchCourier(Order $order, DeliveryService $deliveries)
     {
         abort_unless($order->order_type->value === 'delivery', 422);
@@ -49,7 +48,6 @@ class DeliveryAdminController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    /** Own-driver deliveries: record who is delivering. */
     public function assign(Request $request, Order $order, DeliveryService $deliveries)
     {
         $data = $request->validate([

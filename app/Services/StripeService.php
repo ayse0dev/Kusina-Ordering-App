@@ -9,11 +9,6 @@ class StripeService
 {
     private const API = 'https://api.stripe.com/v1';
 
-    /**
-     * Hosted Checkout for a single amount (CAD). Returns [session_id, url].
-     *
-     * @return array{0: string, 1: string}
-     */
     public function createCheckout(float $amount, string $name, string $reference, string $successUrl, string $cancelUrl): array
     {
         $secret = config('kusina.stripe.secret');
@@ -41,10 +36,6 @@ class StripeService
         return [$response->json('id'), $response->json('url')];
     }
 
-    /**
-     * Verify the `Stripe-Signature` header: "t=<ts>,v1=<sig>[,v1=<sig>]" where
-     * sig = HMAC-SHA256("<ts>.<raw body>", endpoint secret).
-     */
     public function verifySignature(string $rawBody, ?string $header, int $tolerance = 300): bool
     {
         $secret = config('kusina.stripe.webhook_secret');

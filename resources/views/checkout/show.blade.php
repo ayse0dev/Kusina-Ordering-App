@@ -35,6 +35,12 @@
             </div>
         </div>
 
+        <div>
+            <label class="text-sm font-bold" for="customer_email">Email <span class="text-navy-400 font-normal" x-text="type === 'dine_in' ? '' : '(optional, for your receipt)'"></span></label>
+            <input id="customer_email" name="customer_email" type="email" value="{{ old('customer_email', auth()->user()?->email) }}" maxlength="150" autocomplete="email" :required="type === 'dine_in'" placeholder="you@example.com" class="mt-1 w-full">
+            <p class="mt-1 text-xs text-navy-500">We email your receipt here.</p>
+        </div>
+
         <div x-show="type === 'dine_in'" x-cloak>
             <label class="text-sm font-bold" for="table_number">Table number</label>
             <input id="table_number" name="table_number" value="{{ old('table_number') }}" maxlength="20" :required="type === 'dine_in'" :disabled="type !== 'dine_in'" class="mt-1 w-full">
@@ -53,7 +59,6 @@
             <textarea id="notes" name="notes" rows="2" maxlength="300" class="mt-1 w-full">{{ old('notes') }}</textarea>
         </div>
 
-        {{-- Voucher / discount code --}}
         <div>
             <label class="font-display text-xs font-bold uppercase tracking-[0.2em]" for="code">Voucher or discount code</label>
             <div class="mt-2 flex gap-2">
@@ -75,40 +80,47 @@
         <div>
             <p class="font-display text-xs font-bold uppercase tracking-[0.2em] mb-2">Payment</p>
             <p x-show="quote.amount_due <= 0" x-cloak class="bg-sun-50 border border-sun-200 text-sun-800 text-sm px-4 py-3">Your voucher covers the full amount. Nothing to pay.</p>
-            <div class="grid sm:grid-cols-2 gap-2" x-show="quote.amount_due > 0">
+            <div x-show="quote.amount_due > 0 && type === 'dine_in'" x-cloak>
+                <x-payment-fields model="pay" active="type === 'dine_in' && quote.amount_due > 0" />
+            </div>
+            <div class="grid sm:grid-cols-2 gap-2" x-show="quote.amount_due > 0 && type !== 'dine_in'">
                 <label class="cursor-pointer">
-                    <input type="radio" name="payment_method" value="counter" x-model="pay" class="sr-only peer">
+                    <input type="radio" name="payment_method" value="counter" x-model="pay" :disabled="type === 'dine_in'" class="sr-only peer">
                     <div class="border border-cream-line px-3 py-3 peer-checked:border-sun-500 peer-checked:bg-sun-50 hover:bg-cream">
                         <p class="text-sm font-bold">Pay at counter</p>
                         <p class="text-xs text-navy-500">Cash or card when you pick up, dine in, or receive delivery.</p>
                     </div>
                 </label>
                 <label class="{{ $onlineEnabled ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed' }}">
-                    <input type="radio" name="payment_method" value="online" x-model="pay" class="sr-only peer" @disabled(! $onlineEnabled)>
+                    <input type="radio" name="payment_method" value="online" x-model="pay" :disabled="type === 'dine_in'" class="sr-only peer" @disabled(! $onlineEnabled)>
                     <div class="border border-cream-line px-3 py-3 peer-checked:border-sun-500 peer-checked:bg-sun-50 hover:bg-cream">
                         <p class="text-sm font-bold">Pay online</p>
                         <p class="text-xs text-navy-500">{{ $onlineEnabled ? 'Credit or debit card via Stripe.' : 'Currently unavailable.' }}</p>
                     </div>
                 </label>
             </div>
-            {{-- When a voucher covers everything the radios are hidden; still submit a valid method --}}
-            <template x-if="quote.amount_due <= 0"><input type="hidden" name="payment_method" value="counter"></template>
+            <template x-if="quote.amount_due <= 0"><input type="hidden" name="payment_method" :value="type === 'dine_in' ? 'cash' : 'counter'"></template>
         </div>
 
         <button class="btn-primary w-full" :disabled="!!quote.delivery?.error && type === 'delivery'"
-                x-text="quote.amount_due <= 0 ? 'Place order' : (pay === 'online' ? 'Continue to payment' : 'Place order')"></button>
+                x-text="quote.amount_due <= 0 ? 'Place order' : (type !== 'dine_in' && pay === 'online' ? 'Continue to payment' : (type === 'dine_in' && pay !== 'cash' ? 'Pay & place order' : 'Place order'))"></button>
     </form>
 
     <aside class="lg:col-span-2 bg-white border border-cream-line shadow-card p-6 h-fit">
         <h2 class="font-display text-xs font-bold uppercase tracking-[0.2em] mb-3">Order summary</h2>
         <ul class="divide-y divide-cream-line text-sm">
             @foreach ($summary['lines'] as $l)
-                <li class="py-2 flex justify-between gap-3">
-                    <div>
-                        <p><span class="font-bold">{{ $l['qty'] }}×</span> {{ $l['name'] }}</p>
-                        @if ($l['options'])<p class="text-xs text-navy-500">{{ collect($l['options'])->pluck('name')->join(' · ') }}</p>@endif
+                <li class="py-2.5 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        @if (!empty($l['image_url']))
+                            <img src="{{ $l['image_url'] }}" alt="{{ $l['name'] }}" class="w-12 h-12 rounded-lg object-cover border border-cream-line shrink-0 shadow-sm">
+                        @endif
+                        <div class="min-w-0">
+                            <p class="truncate"><span class="font-bold">{{ $l['qty'] }}×</span> {{ $l['name'] }}</p>
+                            @if ($l['options'])<p class="text-xs text-navy-500 truncate">{{ collect($l['options'])->pluck('name')->join(' · ') }}</p>@endif
+                        </div>
                     </div>
-                    <span>${{ number_format($l['line_total'], 2) }}</span>
+                    <span class="font-semibold shrink-0">${{ number_format($l['line_total'], 2) }}</span>
                 </li>
             @endforeach
         </ul>
