@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhotoUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,10 +30,6 @@ class MenuItem extends Model
             return null;
         }
 
-        if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
-            return $this->image_path;
-        }
-
-        return asset('storage/' . ltrim($this->image_path, '/'));
+        return PhotoUrl::resolve($this->image_path);
     }
 }

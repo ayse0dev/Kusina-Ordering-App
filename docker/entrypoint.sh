@@ -28,6 +28,7 @@ case "$ROLE" in
         su-exec www-data php artisan migrate --force --no-interaction
         su-exec www-data php artisan db:seed --class='Database\Seeders\MenuSeeder' --force --no-interaction
         su-exec www-data php artisan db:seed --class='Database\Seeders\FloorSeeder' --force --no-interaction
+        su-exec www-data php artisan db:seed --class='Database\Seeders\GallerySeeder' --force --no-interaction
     fi
 
     export PORT="${PORT:-80}"

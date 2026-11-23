@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use App\Support\PhotoUrl;
 
 class GalleryPhoto extends Model
 {
@@ -11,10 +11,6 @@ class GalleryPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        if (str_starts_with($this->path, 'http://') || str_starts_with($this->path, 'https://')) {
-            return $this->path;
-        }
-
-        return asset('storage/' . ltrim($this->path, '/'));
+        return PhotoUrl::resolve($this->path);
     }
 }
