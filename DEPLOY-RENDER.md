@@ -47,7 +47,7 @@ Copy the whole output (it starts with `base64:`).
 |---|---|
 | `APP_KEY` | the `base64:...` value from step 3 |
 | `DB_HOST` | TiDB host |
-| `DB_DATABASE` | `kusina` |
+| `DB_DATABASE` | the database you created in TiDB (for example `kusina` or `kusina2`) |
 | `DB_USERNAME` | TiDB user (with the prefix) |
 | `DB_PASSWORD` | TiDB password |
 
@@ -70,11 +70,27 @@ php artisan kusina:admin you@example.com
 ```
 (`cacert.pem` is a CA bundle, available from <https://curl.se/ca/cacert.pem>.) Close the terminal afterwards so the password isn't left in your environment.
 
+## 5b. Receipt emails (optional)
+By default the demo does **not** send real emails: receipts are only written to the app log (`MAIL_MAILER=log`). To send them for real, open Render dashboard → **kusina** → **Environment** and change/add:
+
+| Key | Example value |
+|---|---|
+| `MAIL_MAILER` | `smtp` |
+| `MAIL_HOST` | your provider's SMTP host (Brevo: `smtp-relay.brevo.com`, Gmail: `smtp.gmail.com`) |
+| `MAIL_PORT` | `587` |
+| `MAIL_USERNAME` | your SMTP login |
+| `MAIL_PASSWORD` | your SMTP password or app password (keep it private) |
+| `MAIL_FROM_ADDRESS` | an address your provider allows you to send from |
+
+Each receipt email carries the PDF receipt. If mail fails, bookings and orders still go through (the error is only logged).
+
 ## 6. Check it works
 1. Open the site URL: the home page loads (the first visit after sleep takes ~1 minute).
 2. Log in to `/login`; the Orders board shows **live**.
 3. In a second browser, place an order: it appears instantly on the board (this proves the live-updates path).
-4. Reserve a table: the 3D building loads.
+4. Reserve a table: the 3D building loads, and the time picker shows Edmonton time.
+5. On the reservation page, press **Print receipt**: a PDF downloads.
+6. Place a dine-in order with your reservation code (ordering opens 15 minutes before the booking). Open the tracking link: the kitchen shows the cooking bar. In the staff board, move the order to **Preparing**, then **Ready**: the waiter serves the table and the order completes.
 
 **If something fails:** Render dashboard → **Logs**.
 | Symptom | Likely cause |

@@ -1,15 +1,23 @@
 @php
-    $steps = collect(\App\Enums\OrderStatus::timeline($order->order_type))->map(fn ($s) => ['key' => $s->value, 'label' => $s->label()])->values();
+    $dineIn = $order->order_type === \App\Enums\OrderType::DineIn;
+    $sceneData = $scene ? ['floors' => $scene['floors'], 'tableId' => $scene['tableId']] : null;
 @endphp
 <x-kusina-layout title="Order {{ $order->code }}">
-<div class="max-w-2xl mx-auto px-4 py-8"
-     x-data="trackPage(@js(['code' => $order->code, 'status' => $order->status->value, 'payment' => $order->payment_status, 'steps' => $steps, 'delivery' => $delivery]))">
+<div class="max-w-6xl mx-auto px-4 py-8" data-no-reveal
+     x-data="trackPage(@js(['code' => $order->code, 'status' => $order->status->value, 'payment' => $order->payment_status, 'steps' => $milestones, 'delivery' => $delivery, 'prep' => $progress, 'scene3d' => $sceneData, 'dineIn' => $dineIn]))">
+
+  <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
+    <div class="space-y-5 min-w-0">
 
     <div class="bg-white rounded-2xl border border-cream-line shadow-card p-6">
-        <p class="text-sm text-stone-500">Order number</p>
-        <p class="text-2xl font-bold tracking-wide">{{ $order->code }}</p>
-        <p class="text-sm text-stone-500 mt-1">{{ $order->order_type->label() }}@if ($order->table_number) · Table {{ $order->table_number }}@endif · {{ $order->created_at->format('M j, g:i A') }}</p>
-        <p class="mt-2"><a href="{{ route('track.receipt', $order->code) }}" target="_blank" class="text-sm text-brand-700 hover:underline">🖨 View / print receipt</a></p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <p class="text-sm text-stone-500">Order number</p>
+                <p class="text-2xl font-bold tracking-wide">{{ $order->code }}</p>
+                <p class="text-sm text-stone-500 mt-1">{{ $order->order_type->label() }}@if ($order->table_number) · Table {{ $order->table_number }}@endif · {{ $order->created_at->format('M j, g:i A') }}</p>
+            </div>
+            <a href="{{ route('track.receipt', $order->code) }}" target="_blank" class="text-sm text-brand-700 hover:underline">🖨 View / print receipt</a>
+        </div>
 
         @if ($order->payment_method === 'online')
             <div x-show="payment !== 'paid' && status !== 'cancelled'" x-cloak class="mt-4 rounded-lg bg-sun-50 border border-sun-200 text-sun-800 text-sm px-4 py-2">
@@ -33,23 +41,63 @@
                 <p class="mt-2" x-show="delivery.tracking"><a :href="delivery.tracking" target="_blank" rel="noopener noreferrer" class="link-gold-dark">Track your driver live</a></p>
             </div>
         </template>
+    </div>
 
-        <ol class="mt-6 space-y-0" x-show="status !== 'cancelled'">
+    @if ($scene)
+        <div class="bg-navy-950 border border-cream-line shadow-card overflow-hidden" x-show="!fail3d" x-cloak>
+            <div class="flex items-center justify-between gap-3 px-4 py-2.5">
+                <p class="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-sun-300">Live kitchen view</p>
+                <p class="text-xs text-white/60">@if ($scene['tableLabel'])Your table {{ $scene['tableLabel'] }} is highlighted · @endif Drag to look around</p>
+            </div>
+            <div class="relative h-80 sm:h-[30rem] lg:h-[36rem]">
+                <div x-ref="stage" class="absolute inset-0"></div>
+                <p x-show="loading3d" class="absolute inset-0 grid place-items-center text-sm text-white/70">Loading the kitchen…</p>
+            </div>
+        </div>
+    @endif
+
+    </div>
+
+    <div class="space-y-5">
+
+    <div class="bg-white rounded-2xl border border-cream-line shadow-card p-6" x-show="status !== 'cancelled'" x-cloak>
+        <div class="flex items-end justify-between gap-4">
+            <div>
+                <p class="font-display text-[11px] font-bold uppercase tracking-[0.2em] text-navy-900">Cooking time</p>
+                <p class="mt-1 text-4xl font-bold tabular-nums text-navy-900" x-text="headline"></p>
+            </div>
+            <p class="text-3xl font-bold tabular-nums text-emerald-600" x-text="Math.round(percent) + '%'"></p>
+        </div>
+        <div class="mt-3 h-4 rounded-full bg-stone-200 overflow-hidden">
+            <div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-600 transition-[width] duration-500" :style="`width:${percent}%`"></div>
+        </div>
+        <p class="mt-2 text-sm text-stone-600" x-text="note"></p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-cream-line shadow-card p-6" x-show="status !== 'cancelled'" x-cloak>
+        <h2 class="font-semibold mb-4">Order progress</h2>
+        <ol>
             <template x-for="(s, i) in steps" :key="s.key">
-                <li class="flex gap-3">
+                <li class="flex gap-4">
                     <div class="flex flex-col items-center">
-                        <span class="w-6 h-6 rounded-full grid place-items-center text-xs font-bold"
-                              :class="i < idx ? 'bg-emerald-500 text-white' : (i === idx ? 'bg-brand-600 text-white ring-4 ring-brand-100' : 'bg-stone-200 text-stone-500')"
-                              x-text="i < idx ? '✓' : i + 1"></span>
-                        <span class="w-0.5 flex-1 min-h-6" :class="i < idx ? 'bg-emerald-400' : 'bg-stone-200'" x-show="i < steps.length - 1"></span>
+                        <span class="w-8 h-8 rounded-full grid place-items-center text-sm font-bold ring-4 transition"
+                              :class="{ 'bg-emerald-500 text-white ring-emerald-100': s.state === 'done', 'bg-sun-500 text-white ring-sun-200 animate-pulse': s.state === 'current', 'bg-stone-200 text-stone-500 ring-transparent': s.state === 'todo' }"
+                              x-text="s.state === 'done' ? '✓' : i + 1"></span>
+                        <span class="w-0.5 flex-1 min-h-8 transition" :class="s.state === 'done' ? 'bg-emerald-400' : 'bg-stone-200'" x-show="i < steps.length - 1"></span>
                     </div>
-                    <p class="pb-5" :class="i === idx ? 'font-semibold' : (i < idx ? 'text-stone-600' : 'text-stone-400')" x-text="s.label"></p>
+                    <div class="pb-6 flex-1">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <p class="font-semibold" :class="s.state === 'todo' ? 'text-stone-400' : 'text-navy-900'" x-text="s.label"></p>
+                            <p class="text-xs text-stone-500 tabular-nums" x-text="s.at || ''"></p>
+                        </div>
+                        <p class="text-sm text-stone-500" x-show="s.state === 'current'" x-text="s.detail"></p>
+                    </div>
                 </li>
             </template>
         </ol>
     </div>
 
-    <div class="mt-5 bg-white rounded-2xl border border-cream-line shadow-card p-6">
+    <div class="bg-white rounded-2xl border border-cream-line shadow-card p-6">
         <h2 class="font-semibold mb-3">Your items</h2>
         <ul class="divide-y text-sm">
             @foreach ($order->items as $i)
@@ -75,6 +123,9 @@
             @endif
         </dl>
     </div>
-    <p class="text-center mt-5"><a href="{{ route('menu') }}" class="text-brand-600 hover:underline text-sm">← Back to menu</a></p>
+    </div>
+  </div>
+
+    <p class="mt-6 text-center"><a href="{{ route('menu') }}" class="text-brand-600 hover:underline text-sm">← Back to menu</a></p>
 </div>
 </x-kusina-layout>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Floor;
 use App\Models\Reservation;
+use App\Services\ReceiptPdf;
 use App\Services\ReservationService;
 use App\Services\SimulatedPayment;
 use Carbon\CarbonImmutable;
@@ -23,12 +24,15 @@ class ReservationController extends Controller
             ]);
 
         $cfg = config('kusina.reservations');
+        $lastStart = now()->setTimeFromTimeString($cfg['close'])->subMinutes($cfg['slot_minutes']);
+        $firstDay = now()->lt($lastStart) ? now() : now()->addDay();
 
         return view('reservations.index', [
             'floors' => $floors,
             'config' => [
-                'min' => now()->toDateString(),
+                'min' => $firstDay->toDateString(),
                 'max' => now()->addDays($cfg['advance_days'])->toDateString(),
+                'tzNote' => 'All times are Edmonton, Alberta time. It is now '.now()->format('g:i A').', '.now()->format('M j').($firstDay->isToday() ? '' : '. Seatings for today are over, so the next day is shown.'),
                 'maxParty' => $cfg['max_party'],
                 'minutes' => $cfg['slot_minutes'],
                 'open' => $cfg['open'],
@@ -94,6 +98,16 @@ class ReservationController extends Controller
         $reservation = Reservation::with('table.floor')->where('code', $code)->firstOrFail();
 
         return view('reservations.receipt', compact('reservation'));
+    }
+
+    public function receiptPdf(string $code)
+    {
+        $reservation = Reservation::with('table.floor')->where('code', $code)->firstOrFail();
+
+        return response(ReceiptPdf::reservation($reservation), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="Receipt-'.$reservation->code.'.pdf"',
+        ]);
     }
 
     public function cancel(string $code)

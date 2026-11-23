@@ -107,6 +107,7 @@ export function createScene(container, floors, cb = {}) {
     const curtainMat = new THREE.MeshStandardMaterial({ color: 0x7a2434, roughness: 0.95, side: THREE.DoubleSide });
     const blackCurtainMat = new THREE.MeshStandardMaterial({ color: 0x0c0c0e, roughness: 0.95, side: THREE.DoubleSide });
     const doors = [];
+    const serve = { pending: [], seen: new Set(), trip: null };
     const actors = [];
     const screens = [];
     const LOOKS = {
@@ -666,12 +667,12 @@ export function createScene(container, floors, cb = {}) {
         return g;
     }
 
-    function addActor(group, kind, [x, z], script, { speed = 1.1, seat = null, face = 0 } = {}) {
+    function addActor(group, kind, [x, z], script, { speed = 1.1, seat = null, face = 0, next = null } = {}) {
         const mesh = buildPerson(kind);
         mesh.position.set(x, 0, z);
         mesh.rotation.y = face;
         group.add(mesh);
-        actors.push({ mesh, script, alt: 0, i: 0, t: 0, x, z, vx: 0, vz: 0, rot: face, faceTo: face, speed, seat, action: 'idle', moving: false, phase: 0, tray: false, pose: {} });
+        actors.push({ kind, mesh, script, next, alt: 0, i: 0, t: 0, x, z, vx: 0, vz: 0, rot: face, faceTo: face, speed, seat, action: 'idle', moving: false, phase: 0, tray: false, pose: {} });
     }
 
     function updateActors(dt) {
@@ -680,8 +681,14 @@ export function createScene(container, floors, cb = {}) {
         for (const a of actors) {
             a.moving = false;
             for (let guard = 0; guard < 6; guard++) {
+                if (a.next && a.i >= a.script.length) {
+                    a.script = a.next() || [['do', 'idle', 0.4]];
+                    a.i = 0;
+                    a.t = 0;
+                }
                 const st = a.script[a.i % a.script.length];
                 if (st[0] === 'tray') { a.tray = st[1]; a.i++; continue; }
+                if (st[0] === 'call') { st[1](); a.i++; continue; }
                 if (st[0] === 'hide' || st[0] === 'show') { a.mesh.visible = st[0] === 'show'; a.i++; continue; }
                 if (st[0] === 'go') {
                     const dx = st[1] - a.x, dz = st[2] - a.z, d = Math.hypot(dx, dz);
@@ -855,7 +862,7 @@ export function createScene(container, floors, cb = {}) {
         box(group, w + 0.1, 0.1, 0.5, r.cx, rise - 0.08, r.z0 + 0.1, M.steelDark);
     }
 
-    function waiterScript(floor, r, door, pass) {
+    function waiterTrips(floor, r, door, pass) {
         const tables = floor.tables || [];
         if (!tables.length || door.nz !== 1) return null;
         const W = r.W, D = r.D;
@@ -868,22 +875,8 @@ export function createScene(container, floors, cb = {}) {
         const aisleX = Math.min(...tables.map((t) => t.x)) / PX - W / 2 - 0.75;
         const midZ = P(0, 320)[1];
         const inPatio = (t) => patio && t.x >= patio.x && t.x + t.w <= patio.x + patio.w && t.y >= patio.y && t.y + t.h <= patio.y + patio.h;
-        const order = tables.map((t, i) => [(i * 7 + 3) % tables.length, t]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
-        const steps = [];
-        const stairs = zones.find((q) => q.type === 'stairs' && (q.dir || 'up') === 'up');
-        const sr = stairs ? { x: (stairs.x + stairs.w / 2) / PX - W / 2, z0: stairs.y / PX - D / 2, z1: (stairs.y + stairs.h) / PX - D / 2 } : null;
-        const aisleS = P(608, 0)[0], eastLane = P(655, 0)[0], midZ2 = P(0, 372)[1];
-        const rise = LEVEL_H;
-        let n = 0;
-        for (const t of order) {
-            if (sr && n > 0 && n % 4 === 0) {
-                steps.push(['go', pass[0], pass[1]], ['do', 'pickup', 1.6, 0], ['tray', true],
-                    ['go', inside[0], inside[1]], ['go', door.cx, hallZ], ['go', aisleS, hallZ], ['go', aisleS, midZ2], ['go', eastLane, midZ2], ['go', eastLane, sr.z1 - 0.35],
-                    ['go', sr.x, sr.z1 - 0.35], ['go', sr.x, sr.z0 + 0.4, rise], ['hide'], ['tray', false], ['do', 'idle', 7, 0],
-                    ['show'], ['go', sr.x, sr.z1 - 0.35, 0], ['go', eastLane, sr.z1 - 0.35], ['go', eastLane, midZ2], ['go', aisleS, midZ2], ['go', aisleS, hallZ],
-                    ['go', door.cx, hallZ], ['go', inside[0], inside[1]]);
-            }
-            n++;
+
+        return (t) => {
             const tx = (t.x + t.w / 2) / PX - W / 2;
             let path, stop, face;
             if (inPatio(t) && patioDoor) {
@@ -898,14 +891,13 @@ export function createScene(container, floors, cb = {}) {
                 stop = [tx, (t.y + t.h) / PX - D / 2 + 0.6]; face = Math.PI;
                 path = [[aisleX, hallZ], [aisleX, stop[1]]];
             }
-            steps.push(['go', pass[0], pass[1]], ['do', 'pickup', 1.6, 0], ['tray', true],
-                ['go', inside[0], inside[1]], ['go', door.cx, hallZ]);
+            const steps = [['go', pass[0], pass[1]], ['do', 'pickup', 1.6, 0], ['tray', true], ['go', inside[0], inside[1]], ['go', door.cx, hallZ]];
             for (const q of path) steps.push(['go', q[0], q[1]]);
             steps.push(['go', stop[0], stop[1]], ['do', 'serve', 2.4, face], ['tray', false]);
             for (const q of [...path].reverse()) steps.push(['go', q[0], q[1]]);
-            steps.push(['go', door.cx, hallZ], ['go', inside[0], inside[1]]);
-        }
-        return steps;
+            steps.push(['go', door.cx, hallZ], ['go', inside[0], inside[1]], ['go', pass[0], pass[1]]);
+            return steps;
+        };
     }
 
     function buildZone(group, floor, z) {
@@ -969,8 +961,23 @@ export function createScene(container, floors, cb = {}) {
                 ], { speed: 0.95 });
 
                 if (door) {
-                    const route = waiterScript(floor, r, door, [passX, r.z1 - 1.05]);
-                    if (route) addActor(group, 'waiter', [passX, r.z1 - 1.05], route, { speed: 1.25 });
+                    const passStand = [passX, r.z1 - 1.05];
+                    serve.trip = waiterTrips(floor, r, door, passStand);
+                    if (serve.trip) {
+                        addActor(group, 'waiter', passStand, [['do', 'idle', 0.5, 0]], {
+                            speed: 1.25,
+                            next: () => {
+                                const job = serve.pending.shift();
+                                const table = job && floor.tables.find((t) => t.id === job.tableId);
+                                const steps = table ? serve.trip(table) : null;
+                                if (steps && job.onServed) {
+                                    const at = steps.findIndex((st) => st[0] === 'do' && st[1] === 'serve');
+                                    steps.splice(at + 1, 0, ['call', job.onServed]);
+                                }
+                                return steps;
+                            },
+                        });
+                    }
                 }
                 break;
             }
@@ -1394,6 +1401,113 @@ export function createScene(container, floors, cb = {}) {
     let explodeT = 0;
     let explodeTarget = 0;
 
+    const floaters = [];
+    let progress = null;
+    let progressAcc = 0;
+
+    const PROGRESS_THEME = {
+        queued: { label: 'RECEIVED', from: '#fbbf24', to: '#d97706' },
+        cooking: { label: 'COOKING', from: '#4ade80', to: '#15803d' },
+        ready: { label: 'READY', from: '#facc15', to: '#16a34a' },
+        cancelled: { label: 'CANCELLED', from: '#f87171', to: '#b91c1c' },
+    };
+
+    function roundedRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    function ensureProgress() {
+        if (progress) return progress;
+        const level = levels[0];
+        const zone = (level?.floor.zones || []).find((q) => q.type === 'kitchen');
+        if (!zone) return null;
+        const r = rectOf(level.floor, zone);
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+        sprite.scale.set(5.2, 1.3, 1);
+        sprite.renderOrder = 30;
+        sprite.position.set(r.cx, 3.6, r.cz);
+        level.group.add(sprite);
+        floaters.push({ sprite, base: 3.6 });
+        progress = { canvas, ctx: canvas.getContext('2d'), tex, sprite, r, shown: 0, drawn: false, data: { phase: 'queued', percent: 0, time: '', title: '', note: '' } };
+        return progress;
+    }
+
+    function drawProgress(t) {
+        const p = progress;
+        const { ctx, canvas, data } = p;
+        const theme = PROGRESS_THEME[data.phase] || PROGRESS_THEME.queued;
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        roundedRect(ctx, 6, 6, w - 12, h - 12, 40);
+        ctx.fillStyle = 'rgba(8, 10, 12, 0.9)';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = theme.from;
+        ctx.stroke();
+
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = theme.from;
+        ctx.font = '700 38px Arial';
+        ctx.fillText(`${theme.label}  ·  ${data.title}`, 44, 62);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 84px Arial';
+        ctx.fillText(data.time, w - 44, 66);
+
+        const bx = 44, by = 124, bw = w - 88, bh = 64;
+        roundedRect(ctx, bx, by, bw, bh, 32);
+        ctx.fillStyle = '#1f252c';
+        ctx.fill();
+        const fill = Math.max(0, Math.min(100, p.shown));
+        const fw = data.phase === 'queued' ? bw : (bw * fill) / 100;
+        if (fw > 2) {
+            ctx.save();
+            roundedRect(ctx, bx, by, bw, bh, 32);
+            ctx.clip();
+            const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+            g.addColorStop(0, theme.from);
+            g.addColorStop(1, theme.to);
+            ctx.fillStyle = g;
+            ctx.globalAlpha = data.phase === 'queued' ? 0.35 : 1;
+            ctx.fillRect(bx, by, fw, bh);
+            if (data.phase !== 'ready') {
+                ctx.globalAlpha = 0.22;
+                ctx.fillStyle = '#ffffff';
+                const off = (t * 60) % 48;
+                for (let sx = bx - 48 + off; sx < bx + fw; sx += 48) {
+                    ctx.beginPath();
+                    ctx.moveTo(sx, by + bh);
+                    ctx.lineTo(sx + 24, by + bh);
+                    ctx.lineTo(sx + 48, by);
+                    ctx.lineTo(sx + 24, by);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '800 40px Arial';
+        ctx.fillText(data.phase === 'queued' ? 'Waiting for the kitchen' : `${Math.round(fill)}%`, w / 2, by + bh / 2 + 2);
+        ctx.font = '600 28px Arial';
+        ctx.fillStyle = '#9aa5b1';
+        ctx.fillText(data.note || '', w / 2, 226);
+        p.tex.needsUpdate = true;
+    }
+
     function frame(focusFloorId, instant = false) {
         focusId = focusFloorId;
         let target, pos;
@@ -1499,6 +1613,15 @@ export function createScene(container, floors, cb = {}) {
         elapsed += dt;
         const time = elapsed;
         updateActors(dt);
+        for (const f of floaters) f.sprite.position.y = f.base + Math.sin(time * 1.8) * 0.08;
+        if (progress) {
+            progressAcc += dt;
+            if (progressAcc > 0.07) {
+                progressAcc = 0;
+                progress.shown += (progress.data.percent - progress.shown) * 0.3;
+                drawProgress(time);
+            }
+        }
 
         if (tween) {
             tween.t = Math.min(1, tween.t + dt / 0.95);
@@ -1539,6 +1662,33 @@ export function createScene(container, floors, cb = {}) {
             applyAll();
             const e = id !== null ? tables.get(id) : null;
             if (e && !levels.find((l) => l.floor.id === e.floorId)?.group.visible) frame(e.floorId);
+        },
+        setProgress(data) {
+            const p = ensureProgress();
+            if (!p) return;
+            p.data = { ...p.data, ...data };
+            p.sprite.visible = data.phase !== 'done';
+            if (!p.drawn) {
+                p.shown = data.percent;
+                p.drawn = true;
+                drawProgress(0);
+            }
+        },
+        focusKitchen(instant = false) {
+            const p = ensureProgress();
+            if (!p) return;
+            const target = new THREE.Vector3(p.r.cx, 1.4, p.r.cz + 1.2);
+            moveCamera(new THREE.Vector3(target.x + 2.5, 6.2, target.z + 10.5), target, instant);
+        },
+        actorsInfo() {
+            return actors.map((a) => ({ kind: a.kind, x: Number(a.x.toFixed(2)), z: Number(a.z.toFixed(2)), action: a.action, step: a.i, steps: a.script.length, tray: a.tray }));
+        },
+        serveOrders(items) {
+            for (const it of items) {
+                if (serve.seen.has(it.key) || (it.age ?? 0) > 600) continue;
+                serve.seen.add(it.key);
+                serve.pending.push({ key: it.key, tableId: it.tableId, onServed: it.onServed });
+            }
         },
         focusFloor(id) { frame(id); },
         resetView() { controls.autoRotate = false; frame(focusId); },

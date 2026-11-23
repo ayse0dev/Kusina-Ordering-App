@@ -132,7 +132,7 @@ class PaymentAndReceiptTest extends TestCase
 
         $this->get("/reservations/{$r->code}/receipt")->assertOk()
             ->assertSee($r->code)->assertSee('A1')->assertSee('$40.00')->assertSee('$42.00')
-            ->assertSee('DUE ON ARRIVAL')->assertSee('window.print()', false);
+            ->assertSee('DUE ON ARRIVAL')->assertSee('Print receipt')->assertSee("{$r->code}/receipt.pdf", false);
         $this->get('/reservations/RSV-NOPE123/receipt')->assertNotFound();
     }
 
@@ -176,11 +176,20 @@ class PaymentAndReceiptTest extends TestCase
         $this->postJson('/cart', ['item_id' => $item->id, 'option_ids' => [], 'qty' => 1])->assertOk();
     }
 
+    private function liveReservation(array $over = []): Reservation
+    {
+        return Reservation::create($over + [
+            'code' => Reservation::generateCode(), 'dining_table_id' => $this->table->id,
+            'customer_name' => 'Maria', 'customer_phone' => '09171234567', 'party_size' => 2,
+            'starts_at' => now()->subMinutes(10), 'ends_at' => now()->addMinutes(80), 'status' => 'confirmed',
+        ]);
+    }
+
     private function dineIn(array $over = [])
     {
         return $this->post('/checkout', $over + [
             'customer_name' => 'Juan', 'customer_phone' => '780 555 0123', 'customer_email' => 'juan@example.com',
-            'order_type' => 'dine_in', 'table_number' => 'A1',
+            'order_type' => 'dine_in', 'reservation_code' => $this->liveReservation()->code,
         ] + $this->card());
     }
 
@@ -236,5 +245,39 @@ class PaymentAndReceiptTest extends TestCase
         $this->post('/checkout', [
             'customer_name' => 'J', 'customer_phone' => '780 555 0123', 'order_type' => 'pickup', 'payment_method' => 'card',
         ])->assertSessionHasErrors('payment_method');
+    }
+
+    public function test_reservation_receipt_downloads_as_a_pdf(): void
+    {
+        $this->book($this->card())->assertCreated();
+        $r = Reservation::first();
+
+        $res = $this->get("/reservations/{$r->code}/receipt.pdf")->assertOk();
+        $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
+        $this->assertStringContainsString("attachment; filename=\"Receipt-{$r->code}.pdf\"", $res->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF', $res->getContent());
+        $this->get('/reservations/RSV-NOPE123/receipt.pdf')->assertNotFound();
+
+        $this->get("/reservations/{$r->code}/receipt")->assertOk()->assertSee('Print receipt')->assertSee("{$r->code}/receipt.pdf", false)->assertDontSee('Download PDF');
+    }
+
+    public function test_order_receipt_downloads_as_a_pdf(): void
+    {
+        $this->cartWithItem();
+        $this->dineIn()->assertRedirect();
+        $o = Order::first();
+
+        $res = $this->get("/track/{$o->code}/receipt.pdf")->assertOk();
+        $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $res->getContent());
+        $this->get('/track/KUS-NOPE1234/receipt.pdf')->assertNotFound();
+    }
+
+    public function test_receipt_emails_carry_the_pdf(): void
+    {
+        Mail::fake();
+        $this->book()->assertCreated();
+
+        Mail::assertSent(ReservationReceipt::class, fn ($m) => count($m->attachments()) === 1);
     }
 }

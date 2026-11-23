@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OrderType;
 use App\Services\CartService;
 use App\Services\DeliveryService;
+use App\Services\ReservationService;
 use App\Services\SimulatedPayment;
 use App\Services\OrderService;
 use App\Services\PricingService;
@@ -77,7 +78,7 @@ class CheckoutController extends Controller
             'customer_name' => ['required', 'string', 'max:100'],
             'customer_phone' => ['required', 'string', 'regex:/^[0-9+\-\s()]{7,20}$/'],
             'order_type' => ['required', Rule::enum(OrderType::class)],
-            'table_number' => ['nullable', 'required_if:order_type,dine_in', 'string', 'max:20'],
+            'reservation_code' => ['nullable', 'required_if:order_type,dine_in', 'string', 'max:20'],
             'delivery_address' => ['nullable', 'required_if:order_type,delivery', 'string', 'max:300'],
             'notes' => ['nullable', 'string', 'max:300'],
             'customer_email' => ['nullable', 'required_if:order_type,dine_in', 'email:rfc', 'max:150'],
@@ -88,6 +89,12 @@ class CheckoutController extends Controller
 
         if ($request->input('order_type') === 'dine_in') {
             $data += $request->validate(array_diff_key(SimulatedPayment::rules($request->input('payment_method')), ['payment_method' => 1]));
+        }
+
+        if ($data['order_type'] === OrderType::DineIn->value) {
+            $reservation = app(ReservationService::class)->forOrdering($data['reservation_code']);
+            $data['reservation_id'] = $reservation->id;
+            $data['table_number'] = $reservation->table->label;
         }
 
         if ($data['order_type'] === OrderType::Delivery->value) {

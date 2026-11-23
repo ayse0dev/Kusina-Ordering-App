@@ -27,6 +27,15 @@ const firstError = (e) =>
     (e && e.errors ? Object.values(e.errors).flat()[0] : null) || (e && e.message) || 'Something went wrong.';
 
 export default function registerKusina(Alpine) {
+    window.rememberReservation = (entry) => {
+        try {
+            const list = JSON.parse(localStorage.getItem('kusina.reservations') || '[]').filter((b) => b.code !== entry.code);
+            list.unshift(entry);
+            localStorage.setItem('kusina.reservations', JSON.stringify(list.slice(0, 8)));
+            localStorage.setItem('kusina.reservation', entry.code);
+        } catch (_) { }
+    };
+
     Alpine.store('cart', {
         open: false,
         lines: [],
@@ -125,30 +134,138 @@ export default function registerKusina(Alpine) {
         },
     }));
 
-    Alpine.data('trackPage', ({ code, status, payment, steps, delivery }) => ({
-        code, status, payment, steps, delivery,
-        get idx() { return this.steps.findIndex((s) => s.key === this.status); },
-        init() {
-            window.Echo?.channel('orders.' + this.code).listen('.order.updated', (e) => {
-                this.status = e.status;
-                this.payment = e.payment_status;
-                this.poll();
-            });
-            setInterval(() => this.poll(), 20000);
-        },
-        async poll() {
-            try {
-                const d = await api('GET', `/track/${this.code}/status`);
+    Alpine.data('trackPage', ({ code, status, payment, steps, delivery, prep, scene3d, dineIn }) => {
+        let scene = null;
+        let timer = null;
+        const pad = (n) => String(n).padStart(2, '0');
+
+        return {
+            code, status, payment, steps, delivery, prep,
+            clientAt: Date.now(),
+            now: Date.now(),
+            fail3d: false,
+            loading3d: !!scene3d,
+
+            get remaining() {
+                if (this.status === 'preparing') return Math.max(0, this.prep.remaining - (this.now - this.clientAt) / 1000);
+                if (this.status === 'pending') return this.prep.total;
+                return 0;
+            },
+            get percent() {
+                if (this.status === 'pending' || this.status === 'cancelled') return 0;
+                if (this.status === 'preparing') return this.prep.total ? Math.min(99, 100 - (this.remaining / this.prep.total) * 100) : 0;
+                return 100;
+            },
+            get clock() {
+                const s = Math.ceil(this.remaining);
+                return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+            },
+            get phase() {
+                if (this.status === 'cancelled') return 'cancelled';
+                if (this.status === 'pending') return 'queued';
+                if (this.status === 'preparing') return 'cooking';
+                if (this.status === 'completed') return 'done';
+                return 'ready';
+            },
+            get headline() {
+                if (this.status === 'preparing') return this.clock;
+                if (this.status === 'pending') return `~${Math.round(this.prep.total / 60)} min`;
+                return 'Done';
+            },
+            get note() {
+                if (this.status === 'pending') return 'Waiting for the chef to confirm';
+                if (this.status === 'preparing') return this.remaining <= 0 ? 'Almost ready' : (this.prep.ready_at ? `Ready around ${this.prep.ready_at}` : 'Cooking now');
+                if (this.status === 'ready') return dineIn ? 'Heading to your table' : 'Your food is ready';
+                if (this.status === 'out_for_delivery') return 'Out for delivery';
+                return '';
+            },
+
+            init() {
+                window.Echo?.channel('orders.' + this.code).listen('.order.updated', (e) => {
+                    this.status = e.status;
+                    this.payment = e.payment_status;
+                    this.poll();
+                });
+                setInterval(() => this.poll(), 20000);
+                timer = setInterval(() => {
+                    this.now = Date.now();
+                    this.pushProgress();
+                }, 500);
+                if (scene3d) this.boot3d(scene3d);
+            },
+
+            destroy() {
+                clearInterval(timer);
+                scene?.destroy();
+                scene = null;
+            },
+
+            apply(d) {
                 this.status = d.status;
                 this.payment = d.payment_status;
                 this.delivery = d.delivery;
-            } catch (_) {}
-        },
-    }));
+                this.prep = d.progress;
+                this.steps = d.milestones;
+                this.clientAt = Date.now();
+                this.now = this.clientAt;
+                this.pushProgress();
+                this.serveIfReady();
+            },
+
+            async poll() {
+                try {
+                    this.apply(await api('GET', `/track/${this.code}/status`));
+                } catch (_) {}
+            },
+
+            async markServed() {
+                try {
+                    this.apply(await api('POST', `/track/${this.code}/served`));
+                } catch (_) { }
+            },
+
+            actors() {
+                return scene?.actorsInfo() ?? [];
+            },
+
+            serveIfReady() {
+                if (!scene3d || !scene3d.tableId || this.status !== 'ready') return;
+                scene?.serveOrders([{ key: this.code, tableId: scene3d.tableId, age: 0, onServed: () => this.markServed() }]);
+            },
+
+            pushProgress() {
+                scene?.setProgress({
+                    phase: this.phase,
+                    percent: this.percent,
+                    time: this.status === 'preparing' ? this.clock : (this.status === 'pending' ? `~${Math.round(this.prep.total / 60)}m` : (this.phase === 'cancelled' ? '' : 'DONE')),
+                    title: this.code,
+                    note: this.note,
+                });
+            },
+
+            async boot3d(cfg) {
+                try {
+                    const { createScene } = await import('./reservation3d');
+                    scene = createScene(this.$refs.stage, JSON.parse(JSON.stringify(cfg.floors)), {});
+                    scene.setAutoRotate(false);
+                    scene.setStates({}, false);
+                    if (cfg.tableId) scene.setSelected(cfg.tableId);
+                    scene.focusKitchen(true);
+                    this.pushProgress();
+                    this.serveIfReady();
+                } catch (e) {
+                    this.fail3d = true;
+                } finally {
+                    this.loading3d = false;
+                }
+            },
+        };
+    });
 
     Alpine.data('reservationPage', ({ floors, config }) => {
         let scene = null;
         let hintTimer = null;
+        let feedTimer = null;
 
         return {
             floors, config,
@@ -240,6 +357,7 @@ export default function registerKusina(Alpine) {
             },
 
             destroy() {
+                clearInterval(feedTimer);
                 document.removeEventListener('fullscreenchange', this._fs);
                 scene?.destroy();
                 scene = null;
@@ -256,6 +374,14 @@ export default function registerKusina(Alpine) {
                     this.autoRotate = scene.autoRotate;
                     this.sync3d();
                     scene.setSelected(this.selected);
+                    const feed = async () => {
+                        try {
+                            const d = await api('GET', '/kitchen/feed');
+                            scene?.serveOrders(d.ready.map((o) => ({ key: o.key, tableId: o.table_id, age: o.age })));
+                        } catch (_) { }
+                    };
+                    feed();
+                    feedTimer = setInterval(feed, 8000);
                     const lv = parseInt(new URLSearchParams(window.location.search).get('level'), 10);
                     if (this.floors.some((f) => f.id === lv)) this.setFocus(lv);
                 } catch (e) {
@@ -346,6 +472,7 @@ export default function registerKusina(Alpine) {
                         ...pay,
                     });
                     try { localStorage.setItem('kusina.booker', JSON.stringify({ name: this.name, phone: this.phone, email: this.email })); } catch (_) { }
+                    window.rememberReservation({ code: d.redirect.split('/').pop(), table: this.selectedTable?.label, when: `${this.date} ${this.time}` });
                     window.location = d.redirect;
                 } catch (e) {
                     this.error = firstError(e);
@@ -490,8 +617,9 @@ export default function registerKusina(Alpine) {
         removeOption(g, i) { g.options.splice(i, 1); },
     }));
 
-    Alpine.data('checkoutPage', ({ type, pay, quote, address }) => ({
-        type, pay, quote, address,
+    Alpine.data('checkoutPage', ({ type, pay, quote, address, reservation }) => ({
+        type, pay, quote, address, reservation,
+        bookings: [],
         codeInput: '',
         codes: [],
         codeMsg: '',
@@ -504,6 +632,10 @@ export default function registerKusina(Alpine) {
                 if (!dine && !['counter', 'online'].includes(this.pay)) this.pay = 'counter';
             };
             fixPay();
+            if (!this.reservation) {
+                try { this.reservation = localStorage.getItem('kusina.reservation') || ''; } catch (_) {}
+            try { this.bookings = JSON.parse(localStorage.getItem('kusina.reservations') || '[]'); } catch (_) { this.bookings = []; }
+            }
             this.$watch('type', () => { fixPay(); this.refresh(); });
             this.$watch('address', () => { if (this.type === 'delivery') this.refresh(); });
             if (this.type === 'delivery' && this.address) this.refresh();

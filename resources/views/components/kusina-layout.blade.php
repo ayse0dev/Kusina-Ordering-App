@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @include('layouts.partials.favicon')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="reverb-key" content="{{ config('reverb.apps.apps.0.key') }}">
     <title>{{ $title ?? 'Kusi Nna Restaurant' }} · Kusi Nna Restaurant</title>

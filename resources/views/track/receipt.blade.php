@@ -1,5 +1,5 @@
 @php $o = $order; @endphp
-<x-receipt-layout title="Receipt {{ $o->code }}" :back="route('track', $o->code)">
+<x-receipt-layout title="Receipt {{ $o->code }}" :back="route('track', $o->code)" :pdf="route('track.receipt.pdf', $o->code)">
     <table>
         <tr><td class="muted">Order</td><td><strong>{{ $o->code }}</strong></td></tr>
         <tr><td class="muted">Date</td><td>{{ $o->created_at->format('M j, Y g:i A') }}</td></tr>

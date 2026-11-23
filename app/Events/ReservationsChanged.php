@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Events\Concerns\BroadcastsSafely;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
@@ -9,7 +10,9 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class ReservationsChanged implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+    use BroadcastsSafely, Dispatchable, InteractsWithSockets {
+        BroadcastsSafely::dispatch insteadof Dispatchable;
+    }
 
     public function broadcastOn(): array
     {

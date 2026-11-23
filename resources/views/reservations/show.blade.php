@@ -1,10 +1,13 @@
 <x-kusina-layout title="Reservation {{ $reservation->code }}">
-<div class="max-w-lg mx-auto px-4 py-8">
+<div class="max-w-lg mx-auto px-4 py-8" x-data="{ copied: false }" x-init="rememberReservation(@js(['code' => $reservation->code, 'table' => $reservation->table->label, 'when' => $reservation->starts_at->format('M j, g:i A')]))">
     <div class="bg-white rounded-2xl border border-cream-line shadow-card p-6 space-y-4">
         <div>
             <p class="text-sm text-stone-500">Reservation code</p>
-            <p class="text-2xl font-bold tracking-wide">{{ $reservation->code }}</p>
-            <p class="text-xs text-stone-500">Keep this code to view or cancel your booking.</p>
+            <div class="flex items-center gap-3 flex-wrap">
+                <p class="text-2xl font-bold tracking-wide">{{ $reservation->code }}</p>
+                <button type="button" @click="navigator.clipboard?.writeText(@js($reservation->code)); copied = true; setTimeout(() => copied = false, 1800)" class="border border-navy-950 px-3 py-1 text-xs font-semibold uppercase tracking-wider hover:bg-navy-950 hover:text-sun-300 transition" x-text="copied ? 'Copied' : 'Copy code'"></button>
+            </div>
+            <p class="text-xs text-stone-500">Keep this code. You need it to order food for your table, and to view or cancel your booking.</p>
         </div>
 
         @php
@@ -25,6 +28,10 @@
         </dl>
 
         <a href="{{ route('reservations.receipt', $reservation->code) }}" target="_blank" class="inline-block border border-navy-950 px-4 py-2 text-sm font-semibold hover:bg-navy-950 hover:text-sun-300 transition">🖨 View / print receipt</a>
+        @if (in_array($reservation->status, ['confirmed', 'seated'], true) && $reservation->ends_at->isFuture())
+            <a href="{{ route('menu', ['reservation' => $reservation->code]) }}" class="block text-center bg-navy-950 text-sun-300 px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] hover:bg-sun-500 hover:text-navy-950 transition">Order food for this table</a>
+            <p class="text-xs text-stone-500">You can order from {{ $reservation->starts_at->copy()->subMinutes(config('kusina.reservations.order_early_minutes'))->format('g:i A') }} until {{ $reservation->ends_at->format('g:i A') }}.</p>
+        @endif
         @if ($reservation->customer_email)<p class="text-xs text-stone-500">A copy was emailed to {{ $reservation->customer_email }}.</p>@endif
 
         @if ($reservation->status === 'confirmed' && $reservation->starts_at->isFuture())

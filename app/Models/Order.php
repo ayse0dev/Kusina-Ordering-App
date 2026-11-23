@@ -6,6 +6,8 @@ use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
@@ -13,7 +15,7 @@ use Illuminate\Support\Str;
 class Order extends Model
 {
     protected $fillable = [
-        'code', 'customer_name', 'customer_phone', 'customer_email', 'payment_detail', 'payment_account', 'payment_ref', 'order_type', 'table_number', 'delivery_address', 'notes',
+        'code', 'reservation_id', 'customer_name', 'customer_phone', 'customer_email', 'payment_detail', 'payment_account', 'payment_ref', 'order_type', 'table_number', 'delivery_address', 'notes',
         'status', 'payment_method', 'payment_status', 'paymongo_session_id', 'stripe_session_id',
         'discount', 'tax', 'gift_applied', 'amount_due',
         'subtotal', 'delivery_fee', 'total', 'paid_at',
@@ -49,6 +51,24 @@ class Order extends Model
     public function delivery(): HasOne
     {
         return $this->hasOne(Delivery::class);
+    }
+
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
+    }
+
+    public function prepSeconds(): int
+    {
+        $cfg = config('kusina.prep');
+        $count = max(1, (int) $this->items->sum('qty'));
+
+        return min($cfg['max_minutes'], $cfg['base_minutes'] + $cfg['per_item_minutes'] * $count) * 60;
+    }
+
+    public function preparingStartedAt(): ?Carbon
+    {
+        return $this->statusLogs()->where('status', OrderStatus::Preparing->value)->latest('id')->first()?->created_at;
     }
 
     public function statusLogs(): HasMany

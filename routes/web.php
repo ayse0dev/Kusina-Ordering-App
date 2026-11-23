@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\VoucherAdminController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CourierWebhookController;
+use App\Http\Controllers\KitchenFeedController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
@@ -45,8 +46,11 @@ Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
 Route::post('/checkout/quote', [CheckoutController::class, 'quote'])->middleware('throttle:60,1')->name('checkout.quote');
 Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:10,1')->name('checkout.store');
 
+Route::get('/kitchen/feed', KitchenFeedController::class)->middleware('throttle:60,1')->name('kitchen.feed');
 Route::get('/track/{code}', [TrackingController::class, 'show'])->name('track');
 Route::get('/track/{code}/receipt', [TrackingController::class, 'receipt'])->name('track.receipt');
+Route::get('/track/{code}/receipt.pdf', [TrackingController::class, 'receiptPdf'])->name('track.receipt.pdf');
+Route::post('/track/{code}/served', [TrackingController::class, 'served'])->middleware('throttle:20,1')->name('track.served');
 Route::get('/track/{code}/status', [TrackingController::class, 'status'])->middleware('throttle:60,1')->name('track.status');
 
 Route::post('/webhooks/stripe', StripeWebhookController::class)->name('webhooks.stripe');
@@ -58,6 +62,7 @@ Route::prefix('reservations')->name('reservations.')->group(function () {
     Route::post('/', [ReservationController::class, 'store'])->middleware('throttle:6,1')->name('store');
     Route::get('{code}', [ReservationController::class, 'show'])->name('show');
     Route::get('{code}/receipt', [ReservationController::class, 'receipt'])->name('receipt');
+    Route::get('{code}/receipt.pdf', [ReservationController::class, 'receiptPdf'])->name('receipt.pdf');
     Route::post('{code}/cancel', [ReservationController::class, 'cancel'])->name('cancel');
 });
 

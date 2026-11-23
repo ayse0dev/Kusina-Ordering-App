@@ -1,5 +1,5 @@
 @php $r = $reservation; @endphp
-<x-receipt-layout title="Receipt {{ $r->code }}" :back="route('reservations.show', $r->code)">
+<x-receipt-layout title="Receipt {{ $r->code }}" :back="route('reservations.show', $r->code)" :pdf="route('reservations.receipt.pdf', $r->code)">
     <table>
         <tr><td class="muted">Receipt for</td><td><strong>{{ $r->code }}</strong></td></tr>
         <tr><td class="muted">Issued</td><td>{{ $r->created_at->format('M j, Y g:i A') }}</td></tr>

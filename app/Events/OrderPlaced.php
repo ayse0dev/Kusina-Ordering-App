@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Events\Concerns\BroadcastsSafely;
 use App\Models\Order;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -10,7 +11,9 @@ use Illuminate\Foundation\Events\Dispatchable;
 
 class OrderPlaced implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets;
+    use BroadcastsSafely, Dispatchable, InteractsWithSockets {
+        BroadcastsSafely::dispatch insteadof Dispatchable;
+    }
 
     public function __construct(public Order $order) {}
 

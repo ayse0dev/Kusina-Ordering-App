@@ -162,6 +162,7 @@
                             <template x-for="n in config.maxParty" :key="n"><option :value="n" x-text="n + (n === 1 ? ' guest' : ' guests')"></option></template>
                         </select>
                     </div>
+                    <p class="col-span-2 text-xs text-navy-500" x-text="config.tzNote"></p>
                 </div>
 
                 <div class="mt-4 space-y-3">

@@ -1,6 +1,6 @@
 <x-kusina-layout title="Checkout">
 <div class="max-w-5xl mx-auto px-4 py-10 grid gap-8 lg:grid-cols-5"
-     x-data="checkoutPage(@js(['type' => old('order_type', 'pickup'), 'pay' => old('payment_method', 'counter'), 'quote' => $quote, 'address' => old('delivery_address', '')]))">
+     x-data="checkoutPage(@js(['type' => old('order_type', 'pickup'), 'pay' => old('payment_method', 'counter'), 'quote' => $quote, 'address' => old('delivery_address', ''), 'reservation' => old('reservation_code', request('reservation', ''))]))">
 
     <form method="POST" action="{{ route('checkout.store') }}" class="lg:col-span-3 space-y-6 bg-white border border-cream-line shadow-card p-6">
         @csrf
@@ -42,8 +42,21 @@
         </div>
 
         <div x-show="type === 'dine_in'" x-cloak>
-            <label class="text-sm font-bold" for="table_number">Table number</label>
-            <input id="table_number" name="table_number" value="{{ old('table_number') }}" maxlength="20" :required="type === 'dine_in'" :disabled="type !== 'dine_in'" class="mt-1 w-full">
+            <label class="text-sm font-bold" for="reservation_code">Reservation code</label>
+            <input id="reservation_code" name="reservation_code" x-model="reservation" maxlength="20" placeholder="RSV-XXXXXXX" autocomplete="off"
+                   :required="type === 'dine_in'" :disabled="type !== 'dine_in'" class="mt-1 w-full uppercase tracking-wider">
+            <div x-show="bookings.length" x-cloak class="mt-2">
+                <p class="text-xs text-navy-500">Your bookings on this device:</p>
+                <div class="mt-1 flex flex-wrap gap-2">
+                    <template x-for="b in bookings" :key="b.code">
+                        <button type="button" @click="reservation = b.code" class="border px-2.5 py-1.5 text-xs transition hover:bg-cream"
+                                :class="reservation === b.code ? 'border-sun-500 bg-sun-50 font-bold' : 'border-cream-line'"
+                                x-text="`${b.code} · Table ${b.table || '?'} · ${b.when || ''}`"></button>
+                    </template>
+                </div>
+            </div>
+            <p class="mt-1 text-xs text-navy-500">Dine-in orders go to your booked table, so book a table first. You can order from 15 minutes before your booking until it ends.
+                <a href="{{ route('reservations.index') }}" class="text-sun-700 underline">Book a table</a></p>
         </div>
 
         <div x-show="type === 'delivery'" x-cloak>

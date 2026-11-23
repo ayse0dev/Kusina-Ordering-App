@@ -83,6 +83,28 @@ class ReservationService
         return $reservation;
     }
 
+    public function forOrdering(string $code): Reservation
+    {
+        $reservation = Reservation::with('table')->where('code', strtoupper(trim($code)))->first();
+
+        if (! $reservation) {
+            throw ValidationException::withMessages(['reservation_code' => 'We could not find that reservation code. Please book a table first.']);
+        }
+        if (! in_array($reservation->status, Reservation::BLOCKING, true)) {
+            throw ValidationException::withMessages(['reservation_code' => 'That reservation is no longer active. Please book a table first.']);
+        }
+
+        $opens = $reservation->starts_at->copy()->subMinutes($this->cfg['order_early_minutes']);
+        if (now()->lt($opens)) {
+            throw ValidationException::withMessages(['reservation_code' => "You can order for this table from {$opens->format('g:i A')} on {$opens->format('M j')}."]);
+        }
+        if (now()->gt($reservation->ends_at)) {
+            throw ValidationException::withMessages(['reservation_code' => 'That reservation has ended. Please book a new table to order.']);
+        }
+
+        return $reservation;
+    }
+
     public function setStatus(Reservation $reservation, string $status): Reservation
     {
         $reservation->update(['status' => $status]);

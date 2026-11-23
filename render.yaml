@@ -96,5 +96,11 @@ services:
         value: "5"
       - key: KUSINA_COURIER
         value: manual
+      - key: MAIL_MAILER
+        value: log             # receipt emails are only written to the log until you add SMTP details (see DEPLOY-RENDER.md, section 5b)
+      - key: MAIL_FROM_ADDRESS
+        value: hello@example.com
+      - key: MAIL_FROM_NAME
+        value: Kusi Nna Restaurant
       - key: KUSINA_GEOCODER
         value: none            # avoids calling OpenStreetMap from a demo; set to nominatim when you want delivery-zone checks

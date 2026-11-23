@@ -45,6 +45,7 @@ class OrderService
                 'customer_phone' => $data['customer_phone'],
                 'order_type' => $type,
                 'table_number' => $type === OrderType::DineIn ? ($data['table_number'] ?? null) : null,
+                'reservation_id' => $type === OrderType::DineIn ? ($data['reservation_id'] ?? null) : null,
                 'delivery_address' => $type === OrderType::Delivery ? ($data['delivery_address'] ?? null) : null,
                 'notes' => $data['notes'] ?? null,
                 'status' => OrderStatus::Pending,
@@ -149,6 +150,28 @@ class OrderService
         OrderUpdated::dispatch($order);
 
         return $order;
+    }
+
+    public function completeServed(Order $order): void
+    {
+        if ($order->status !== OrderStatus::Ready || $order->order_type !== OrderType::DineIn) {
+            return;
+        }
+
+        try {
+            $this->transition($order, OrderStatus::Completed);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    public function sweepServed(): void
+    {
+        Order::where('order_type', OrderType::DineIn->value)
+            ->where('status', OrderStatus::Ready->value)
+            ->where('updated_at', '<=', now()->subSeconds(config('kusina.serve_seconds')))
+            ->get()
+            ->each(fn (Order $order) => $this->completeServed($order));
     }
 
     public function courierUpdate(Order $order, DeliveryStatus $status): void

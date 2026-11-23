@@ -57,6 +57,15 @@ return [
         'advance_days' => 30,
         'max_party' => 12,
         'fee_per_guest' => 10,
+        'order_early_minutes' => 15,
+    ],
+
+    'serve_seconds' => (int) env('KUSINA_SERVE_SECONDS', 90),
+
+    'prep' => [
+        'base_minutes' => (int) env('KUSINA_PREP_BASE', 8),
+        'per_item_minutes' => (int) env('KUSINA_PREP_PER_ITEM', 2),
+        'max_minutes' => (int) env('KUSINA_PREP_MAX', 40),
     ],
 
     'payment_methods' => [
